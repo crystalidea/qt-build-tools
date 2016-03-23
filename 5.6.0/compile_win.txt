@@ -1,0 +1,29 @@
+1. Копируем все файлы и папки из данного каталога в C:\qt
+2. qtbase\configure.bat - коментируем "if not exist %QTSRC%\.gitignore goto sconf"
+3. Запускаем qt5vars.cmd
+5. cd qtbase
+   configure -opensource -opengl desktop -mp -nomake tests -nomake examples -target xp
+   nmake
+
+6. cd ..\qtdeclarative
+   qmake
+   nmake
+
+6. cd ..\qttools
+   qmake
+   nmake
+
+7. cd ..\qtwinextras
+   qmake
+   nmake
+
+8.  cd ..\qtbase
+    nmake docs
+    cd ..\qtwinextras
+    nmake docs
+    cd ..\qttools
+    nmake docs
+    cd ..\qtdeclarative
+    nmake docs
+
+9. ..\cleanup.bat
