@@ -920,18 +920,8 @@ QT_WARNING_POP
 -(void)resetCursorRects
 {
     // Use the cursor rect API if there is a NSWindow
-	using QNSV = QT_MANGLE_NAMESPACE(QNSView);
-
-	NSWindow *win = m_platformWindow->m_nsWindow;
-	NSView *pv = self.superview;
-	for (; !win && [pv isKindOfClass:[QNSV class]]; pv = pv.superview) {
-		auto platformWindow = static_cast<QNSV *>(pv)->m_platformWindow;
-		if (platformWindow)
-			win = platformWindow->m_nsWindow;
-	}
-
-	if (win && m_platformWindow->m_windowCursor)
-		[self addCursorRect:[self visibleRect] cursor:m_platformWindow->m_windowCursor];
+    if (m_platformWindow->m_nsWindow && m_platformWindow->m_windowCursor)
+        [self addCursorRect:[self visibleRect] cursor:m_platformWindow->m_windowCursor];
 }
 
 - (void)mouseMovedImpl:(NSEvent *)theEvent
