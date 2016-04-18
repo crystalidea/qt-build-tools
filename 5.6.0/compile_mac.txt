@@ -1,13 +1,9 @@
-1. устанавливаем xcode 4.6.dmg + command_line_tools_lion_xcode462_cltools_10_76938260a
-2. tar -xvf qt-everywhere-opensource-src-5.5.0.tar.gz
-3. Компиляция
-
-   cd qtbase
+1. cd qtbase
    ./configure -opensource -no-openssl -no-securetransport -nomake examples -nomake tests -platform macx-clang-32
    make
    sudo make install
 
-4.
+2.
    nano ~/.profile
 
 "
@@ -16,22 +12,22 @@ export PATH
 "
    После этого надо закрыть консоль и начать новую сессию
 
-5. cd ../qtdeclarative
+3. cd ../qtdeclarative
    qmake
    make
    sudo make install
 
-6. cd ../qttools
+4. cd ../qttools
    qmake
    make
    sudo make install
 
-7. cd ../qtmacextras
+5. cd ../qtmacextras
    qmake
    make
    sudo make install
 
-8. Устанавливаем доки
+6. Устанавливаем доки
 
    cd ../qtbase
    make docs
@@ -42,7 +38,7 @@ export PATH
 
    sudo cp -f -r ../qtbase/doc /usr/local/Qt-5.6.0/
 
-9. Создаем ZIP файл
+7. Создаем ZIP файл
 
 cd /usr/local
 zip -r ~/Desktop/qt5.6.0_mac.zip Qt-5.6.0/*
