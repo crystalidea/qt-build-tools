@@ -1,3 +1,5 @@
+#!/bin/bash
+
 export PATH=$PATH:/usr/local/Qt-5.6.1/bin
 
 cd qtbase
