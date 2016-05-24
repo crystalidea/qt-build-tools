@@ -931,7 +931,7 @@ QT_WARNING_POP
 {
     Q_UNUSED(theEvent)
     // Set the cursor manually if there is no NSWindow.
-    if (!m_platformWindow->m_nsWindow && m_platformWindow->m_windowCursor)
+    if (![self nsWindow] && m_platformWindow->m_windowCursor)
         [m_platformWindow->m_windowCursor set];
     else
         [super cursorUpdate:theEvent];
@@ -940,7 +940,7 @@ QT_WARNING_POP
 -(void)resetCursorRects
 {
     // Use the cursor rect API if there is a NSWindow
-    if (m_platformWindow->m_nsWindow && m_platformWindow->m_windowCursor)
+    if ([self nsWindow] && m_platformWindow->m_windowCursor)
         [self addCursorRect:[self visibleRect] cursor:m_platformWindow->m_windowCursor];
 }
 
@@ -2090,6 +2090,26 @@ static QPoint mapWindowCoordinates(QWindow *source, QWindow *target, QPoint poin
     QPoint qtScreenPoint = QPoint(screenPoint.x, qt_mac_flipYCoordinate(screenPoint.y));
 
     QWindowSystemInterface::handleMouseEvent(target, mapWindowCoordinates(m_window, target, qtWindowPoint), qtScreenPoint, m_buttons);
+}
+
+- (NSWindow *)nsWindow
+{
+    typedef QT_MANGLE_NAMESPACE(QNSView) QNSV;
+
+    NSWindow *win = m_platformWindow->m_nsWindow;
+    NSView *parent = self.superview;
+    while (!win) {
+        if (![parent isKindOfClass:[QNSV class]])
+            break;
+
+        QCocoaWindow *platformWindow = static_cast<QNSV *>(parent)->m_platformWindow;
+        if (platformWindow)
+            win = platformWindow->m_nsWindow;
+
+        parent = parent.superview;
+    }
+
+    return win;
 }
 
 @end

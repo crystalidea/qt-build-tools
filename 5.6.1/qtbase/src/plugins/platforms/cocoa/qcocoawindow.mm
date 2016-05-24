@@ -1658,8 +1658,12 @@ void QCocoaWindow::setWindowCursor(NSCursor *cursor)
     // Othervise, set the cursor if this window is under the mouse. In
     // this case QNSView::cursorUpdate will set the cursor as the pointer
     // moves.
-    if (m_nsWindow && m_qtView) {
-        [m_nsWindow invalidateCursorRectsForView : m_qtView];
+    NSWindow *nsWindow = m_nsWindow;
+    if (!nsWindow)
+        nsWindow = [m_qtView nsWindow];
+
+    if (nsWindow && m_qtView) {
+        [nsWindow invalidateCursorRectsForView : m_qtView];
     } else {
         if (m_windowUnderMouse)
             [cursor set];

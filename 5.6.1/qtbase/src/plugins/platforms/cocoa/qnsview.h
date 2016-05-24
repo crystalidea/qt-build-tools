@@ -140,6 +140,8 @@ Q_FORWARD_DECLARE_OBJC_CLASS(QT_MANGLE_NAMESPACE(QNSViewMouseMoveHelper));
 - (void)registerDragTypes;
 - (NSDragOperation)handleDrag:(id <NSDraggingInfo>)sender;
 
+- (NSWindow *)nsWindow;
+
 @end
 
 QT_NAMESPACE_ALIAS_OBJC_CLASS(QNSView);
