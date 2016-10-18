@@ -3,7 +3,7 @@
 export PATH=$PATH:/usr/local/Qt-5.6.2/bin
 
 cd qtbase
-./configure -opensource -no-openssl -no-securetransport -nomake examples -nomake tests -platform macx-clang-32
+./configure -opensource -no-openssl -no-securetransport -nomake examples -nomake tests
 make
 echo 12345 | sudo -S sudo make install
 
