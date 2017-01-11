@@ -262,10 +262,10 @@ QT_END_NAMESPACE
         application depends on.
      */
     NSAppleEventManager *eventManager = [NSAppleEventManager sharedAppleEventManager];
-    [eventManager setEventHandler:self
+    /*[eventManager setEventHandler:self
                       andSelector:@selector(appleEventQuit:withReplyEvent:)
                     forEventClass:kCoreEventClass
-                       andEventID:kAEQuitApplication];
+                       andEventID:kAEQuitApplication];*/
     [eventManager setEventHandler:self
                       andSelector:@selector(getUrl:withReplyEvent:)
                     forEventClass:kInternetEventClass
@@ -276,7 +276,7 @@ QT_END_NAMESPACE
 - (void) removeAppleEventHandlers
 {
     NSAppleEventManager *eventManager = [NSAppleEventManager sharedAppleEventManager];
-    [eventManager removeEventHandlerForEventClass:kCoreEventClass andEventID:kAEQuitApplication];
+    //[eventManager removeEventHandlerForEventClass:kCoreEventClass andEventID:kAEQuitApplication];
     [eventManager removeEventHandlerForEventClass:kInternetEventClass andEventID:kAEGetURL];
 }
 
