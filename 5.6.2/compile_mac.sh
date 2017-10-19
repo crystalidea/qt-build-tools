@@ -6,11 +6,11 @@ cd qtbase
 
 if [[ $1 == openssl ]]; then
     
-    # download openssl
-    curl -O https://www.openssl.org/source/old/1.0.2/openssl-1.0.2l.tar.gz
-    tar -xvzf openssl-1.0.2l.tar.gz
+	# download openssl
+	curl -O https://www.openssl.org/source/old/1.0.2/openssl-1.0.2l.tar.gz
+	tar -xvzf openssl-1.0.2l.tar.gz
 
-    # compile openssl
+	# compile openssl
 	cd openssl-1.0.2l
 	./Configure darwin64-x86_64-cc --prefix=$PWD/dist
 	make
