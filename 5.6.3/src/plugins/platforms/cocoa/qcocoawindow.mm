@@ -313,7 +313,7 @@ static bool isMouseEvent(NSEvent *ev)
             continue;
 
         if ([window conformsToProtocol:@protocol(QNSWindowProtocol)]) {
-            QCocoaWindow *cocoaWindow = static_cast<id<QNSWindowProtocol>>(window).helper.platformWindow;
+            QCocoaWindow *cocoaWindow = static_cast< id<QNSWindowProtocol> >(window).helper.platformWindow;
             window.level = notification.name == NSApplicationWillResignActiveNotification ?
                 NSNormalWindowLevel : cocoaWindow->windowLevel(cocoaWindow->window()->flags());
         }
