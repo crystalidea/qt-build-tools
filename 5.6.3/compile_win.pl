@@ -20,8 +20,10 @@ open BAT, '>', $batfile;
 printLineToBat ("CALL \"C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat\" $arch");
 printLineToBat ("cd qtbase");
 printLineToBat ("wget $openssl_download");
-printLineToBat ("tar -xvzf openssl-$openssl_version.tar.gz");
+printLineToBat ("7z x openssl-$openssl_version.tar.gz");
+printLineToBat ("7z x openssl-$openssl_version.tar");
 printLineToBat ("rm openssl-$openssl_version.tar.gz");
+printLineToBat ("rm openssl-$openssl_version.tar");
 printLineToBat ("cd $openssl_dir");
 # build debug
 printLineToBat ("perl Configure no-asm no-shared --prefix=%cd%\\Debug --openssldir=%cd%\\Debug debug-VC-$openssl_arch");
