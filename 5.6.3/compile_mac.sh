@@ -38,11 +38,6 @@ fi
 make
 echo 12345 | sudo -S sudo make install
 
-cd ../qtdeclarative
-qmake
-make
-echo 12345 | sudo -S sudo make install
-
 cd ../qttools
 qmake
 make
