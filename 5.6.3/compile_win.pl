@@ -18,7 +18,7 @@ my $batfile = 'compile_win.bat';
 
 open BAT, '>', $batfile;
 
-printLineToBat ("SET PATH=%PATH%;bin"); # add bin folder to the path for 7z and wget
+printLineToBat ("SET PATH=%PATH%;%cd%\\bin"); # add bin folder to the path for 7z and wget
 printLineToBat ("CALL \"C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Auxiliary\\Build\\vcvarsall.bat\" $arch");
 #printLineToBat ("CALL \"C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat\" $arch"); # VS2013
 printLineToBat ("cd qtbase");
