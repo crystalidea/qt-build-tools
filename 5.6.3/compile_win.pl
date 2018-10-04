@@ -9,7 +9,8 @@ my $openssl_download = "https://www.openssl.org/source/old/$openssl_v_major/open
 my $openssl_arch = $arch eq "amd64" ? "WIN64A" : "WIN32";
 my $openssl_do_ms = $arch eq "amd64" ? "do_win64a" : "do_ms";
 
-die "Please specify architecture (x86 or amd64)" if ($arch ne "x86" && $arch ne "amd64");
+$arch = "x86" if ($arch eq ''); # specify x86 is nothing is specified
+die "Please specify architecture (x86 or amd64)" if ($arch ne "x86" && $arch ne "amd64"); # die if user specified anything except x86 or amd64
 
 # will create a batch file
 
@@ -17,9 +18,11 @@ my $batfile = 'compile_win.bat';
 
 open BAT, '>', $batfile;
 
-printLineToBat ("CALL \"C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat\" $arch");
+printLineToBat ("SET PATH=%PATH%;bin"); # add bin folder to the path for 7z and wget
+printLineToBat ("CALL \"C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Auxiliary\\Build\\vcvarsall.bat\" $arch");
+#printLineToBat ("CALL \"C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\vcvarsall.bat\" $arch"); # VS2013
 printLineToBat ("cd qtbase");
-printLineToBat ("wget $openssl_download");
+printLineToBat ("wget --no-check-certificate $openssl_download");
 printLineToBat ("7z x openssl-$openssl_version.tar.gz");
 printLineToBat ("7z x openssl-$openssl_version.tar");
 printLineToBat ("rm openssl-$openssl_version.tar.gz");
