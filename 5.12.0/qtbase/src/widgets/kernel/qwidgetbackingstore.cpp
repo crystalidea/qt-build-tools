@@ -101,6 +101,13 @@ void QWidgetBackingStore::qt_flush(QWidget *widget, const QRegion &region, QBack
 
     if (tlw->testAttribute(Qt::WA_DontShowOnScreen) || widget->testAttribute(Qt::WA_DontShowOnScreen))
         return;
+
+    // Foreign Windows do not have backing store content and must not be flushed
+    if (QWindow *widgetWindow = widget->windowHandle()) {
+        if (widgetWindow->type() == Qt::ForeignWindow)
+            return;
+    }
+
     static bool fpsDebug = qEnvironmentVariableIntValue("QT_DEBUG_FPS");
     if (fpsDebug) {
         if (!widgetBackingStore->perfFrames++)
@@ -1053,20 +1060,8 @@ static QPlatformTextureList *widgetTexturesFor(QWidget *tlw, QWidget *widget)
         static bool switchableWidgetComposition =
             QGuiApplicationPrivate::instance()->platformIntegration()
                 ->hasCapability(QPlatformIntegration::SwitchableWidgetComposition);
-        if (!switchableWidgetComposition
-// The Windows compositor handles fullscreen OpenGL window specially. Besides
-// having trouble with popups, it also has issues with flip-flopping between
-// OpenGL-based and normal flushing. Therefore, stick with GL for fullscreen
-// windows (QTBUG-53515). Similary, translucent windows should not switch to
-// layered native windows (QTBUG-54734).
-#if defined(Q_OS_WIN) && !defined(Q_OS_WINRT) && !defined(Q_OS_WINCE)
-                || tlw->windowState().testFlag(Qt::WindowFullScreen)
-                || tlw->testAttribute(Qt::WA_TranslucentBackground)
-#endif
-                )
-        {
+        if (!switchableWidgetComposition)
             return qt_dummy_platformTextureList();
-        }
     }
 
     return 0;
