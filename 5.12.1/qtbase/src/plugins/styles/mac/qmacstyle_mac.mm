@@ -130,6 +130,7 @@
 #include <QtWidgets/qgraphicsview.h>
 #endif
 #include <QtCore/qvariant.h>
+#include <QtCore/qvarlengtharray.h>
 #include <private/qstylehelper_p.h>
 #include <private/qstyleanimation_p.h>
 #include <qpa/qplatformfontdatabase.h>
@@ -312,6 +313,26 @@ static QLinearGradient titlebarGradientInactive()
         return gradient;
     }();
     return qt_mac_applicationIsInDarkMode() ? darkGradient : lightGradient;
+}
+
+static void clipTabBarFrame(const QStyleOption *option, const QMacStyle *style, CGContextRef ctx)
+{
+    Q_ASSERT(option);
+    Q_ASSERT(style);
+    Q_ASSERT(ctx);
+
+    if (qt_mac_applicationIsInDarkMode()) {
+        QTabWidget *tabWidget = qobject_cast<QTabWidget *>(option->styleObject);
+        Q_ASSERT(tabWidget);
+
+        const QRect tabBarRect = style->subElementRect(QStyle::SE_TabWidgetTabBar, option, tabWidget).adjusted(2, 2, -3, -2);
+        const QRegion clipPath = QRegion(option->rect) - tabBarRect;
+        QVarLengthArray<CGRect, 3> cgRects;
+        for (const QRect &qtRect : clipPath)
+            cgRects.push_back(qtRect.toCGRect());
+        if (cgRects.size())
+            CGContextClipToRects(ctx, &cgRects[0], size_t(cgRects.size()));
+    }
 }
 
 static const QColor titlebarSeparatorLineActive(111, 111, 111);
@@ -2975,13 +2996,30 @@ void QMacStyle::drawPrimitive(PrimitiveElement pe, const QStyleOption *opt, QPai
         // inContext:, but only in light mode. In dark mode, we use a custom NSBox subclass,
         // QDarkNSBox, of type NSBoxCustom. Its appearance is close enough to the real thing so
         // we can use this for now.
-        d->drawNSViewInRect(box, opt->rect, p, ^(CGContextRef ctx, const CGRect &rect) {
+        auto adjustedRect = opt->rect;
+        bool needTranslation = false;
+        if (QOperatingSystemVersion::current() >= QOperatingSystemVersion::MacOSMojave
+            && !qt_mac_applicationIsInDarkMode()) {
+            // Another surprise from AppKit (SDK 10.14) - -displayRectIgnoringOpacity:
+            // is different from drawRect: for some Apple-known reason box is smaller
+            // in height than we need, resulting in tab buttons sitting too high/not
+            // centered. Attempts to play with insets etc did not work - the same wrong
+            // height. Simple translation is not working (too much space "at bottom"),
+            // so we make it bigger and translate (otherwise it's clipped at bottom btw).
+            adjustedRect.adjust(0, 0, 0, 3);
+            needTranslation = true;
+        }
+        d->drawNSViewInRect(box, adjustedRect, p, ^(CGContextRef ctx, const CGRect &rect) {
+            if (QTabWidget *tabWidget = qobject_cast<QTabWidget *>(opt->styleObject))
+                clipTabBarFrame(opt, this, ctx);
             CGContextTranslateCTM(ctx, 0, rect.origin.y + rect.size.height);
             CGContextScaleCTM(ctx, 1, -1);
             if (QOperatingSystemVersion::current() < QOperatingSystemVersion::MacOSMojave
                 || [box isMemberOfClass:QDarkNSBox.class]) {
                 [box drawRect:rect];
             } else {
+                if (needTranslation)
+                    CGContextTranslateCTM(ctx, 0.0, 4.0);
                 [box displayRectIgnoringOpacity:box.bounds inContext:NSGraphicsContext.currentContext];
             }
         });
@@ -3194,6 +3232,29 @@ void QMacStyle::drawPrimitive(PrimitiveElement pe, const QStyleOption *opt, QPai
                 static_cast<NSTextFieldCell *>(tf.cell).bezelStyle = isRounded ? NSTextFieldRoundedBezel : NSTextFieldSquareBezel;
                 tf.frame = opt->rect.toCGRect();
                 d->drawNSViewInRect(tf, opt->rect, p, ^(CGContextRef, const CGRect &rect) {
+                    if (!qt_mac_applicationIsInDarkMode()) {
+                        // In 'Dark' mode controls are transparent, so we do not
+                        // over-paint the (potentially custom) color in the background.
+                        // In 'Light' mode we have to care about the correct
+                        // background color. See the comments below for PE_PanelLineEdit.
+                        CGContextRef cgContext = NSGraphicsContext.currentContext.CGContext;
+                        // See QMacCGContext, here we expect bitmap context created with
+                        // color space 'kCGColorSpaceSRGB', if it's something else - we
+                        // give up.
+                        if (cgContext ? bool(CGBitmapContextGetColorSpace(cgContext)) : false) {
+                            tf.drawsBackground = YES;
+                            const QColor bgColor = frame->palette.brush(QPalette::Base).color();
+                            tf.backgroundColor = [NSColor colorWithSRGBRed:bgColor.redF()
+                                                                     green:bgColor.greenF()
+                                                                      blue:bgColor.blueF()
+                                                                     alpha:bgColor.alphaF()];
+                            if (bgColor.alpha() != 255) {
+                                // No way we can have it bezeled and transparent ...
+                                tf.bordered = YES;
+                            }
+                        }
+                    }
+
                     [tf.cell drawWithFrame:rect inView:tf];
                 });
             } else {
@@ -3202,21 +3263,36 @@ void QMacStyle::drawPrimitive(PrimitiveElement pe, const QStyleOption *opt, QPai
         }
         break;
     case PE_PanelLineEdit:
-        QCommonStyle::drawPrimitive(pe, opt, p, w);
-        // Draw the focus frame for widgets other than QLineEdit (e.g. for line edits in Webkit).
-        // Focus frame is drawn outside the rectangle passed in the option-rect.
-        if (const QStyleOptionFrame *panel = qstyleoption_cast<const QStyleOptionFrame *>(opt)) {
-#if QT_CONFIG(lineedit)
-            if ((opt->state & State_HasFocus) && !qobject_cast<const QLineEdit*>(w)) {
-                int vmargin = pixelMetric(QStyle::PM_FocusFrameVMargin);
-                int hmargin = pixelMetric(QStyle::PM_FocusFrameHMargin);
-                QStyleOptionFrame focusFrame = *panel;
-                focusFrame.rect = panel->rect.adjusted(-hmargin, -vmargin, hmargin, vmargin);
-                drawControl(CE_FocusFrame, &focusFrame, p, w);
+        {
+            const QStyleOptionFrame *panel = qstyleoption_cast<const QStyleOptionFrame *>(opt);
+            if (qt_mac_applicationIsInDarkMode() || (panel && panel->lineWidth <= 0)) {
+                // QCommonStyle::drawPrimitive(PE_PanelLineEdit) fill the background with
+                // a proper color, defined in opt->palette and then, if lineWidth > 0, it
+                // calls QMacStyle::drawPrimitive(PE_FrameLineEdit). We use NSTextFieldCell
+                // to handle PE_FrameLineEdit, which will use system-default background.
+                // In 'Dark' mode it's transparent and thus it's not over-painted.
+                QCommonStyle::drawPrimitive(pe, opt, p, w);
+            } else {
+                // In 'Light' mode, if panel->lineWidth > 0, we have to use the correct
+                // background color when drawing PE_FrameLineEdit, so let's call it
+                // directly and set the proper color there.
+                drawPrimitive(PE_FrameLineEdit, opt, p, w);
             }
-#endif
-        }
 
+            // Draw the focus frame for widgets other than QLineEdit (e.g. for line edits in Webkit).
+            // Focus frame is drawn outside the rectangle passed in the option-rect.
+            if (panel) {
+#if QT_CONFIG(lineedit)
+                if ((opt->state & State_HasFocus) && !qobject_cast<const QLineEdit*>(w)) {
+                    int vmargin = pixelMetric(QStyle::PM_FocusFrameVMargin);
+                    int hmargin = pixelMetric(QStyle::PM_FocusFrameHMargin);
+                    QStyleOptionFrame focusFrame = *panel;
+                    focusFrame.rect = panel->rect.adjusted(-hmargin, -vmargin, hmargin, vmargin);
+                    drawControl(CE_FocusFrame, &focusFrame, p, w);
+                }
+#endif
+            }
+        }
         break;
     case PE_PanelScrollAreaCorner: {
         const QBrush brush(opt->palette.brush(QPalette::Base));
@@ -3699,6 +3775,12 @@ void QMacStyle::drawControl(ControlElement ce, const QStyleOption *opt, QPainter
             // inFrame:withView:], -[drawRect:] or anything in between. Besides,
             // there's no public API do draw the pressed state, AFAICS. We'll use
             // a push NSButton instead and clip the CGContext.
+            // NOTE/TODO: this is not true. On 10.13 NSSegmentedControl works with
+            // some (black?) magic/magic dances, on 10.14 it simply works (was
+            // it fixed in AppKit?). But, indeed, we cannot make a tab 'pressed'
+            // with NSSegmentedControl (only selected), so we stay with buttons
+            // (mixing buttons and NSSegmentedControl for such a simple thing
+            // is too much work).
 
             const auto cs = d->effectiveAquaSizeConstrain(opt, w);
             // Extra hacks to get the proper pressed appreance when not selected or selected and inactive
@@ -4147,7 +4229,7 @@ void QMacStyle::drawControl(ControlElement ce, const QStyleOption *opt, QPainter
     case CE_MenuBarEmptyArea:
         if (const QStyleOptionMenuItem *mi = qstyleoption_cast<const QStyleOptionMenuItem *>(opt)) {
             const bool selected = (opt->state & State_Selected) && (opt->state & State_Enabled) && (opt->state & State_Sunken);
-            const QBrush bg = selected ? mi->palette.highlight() : mi->palette.background();
+            const QBrush bg = selected ? mi->palette.highlight() : mi->palette.window();
             p->fillRect(mi->rect, bg);
 
             if (ce != CE_MenuBarItem)
