@@ -28,17 +28,17 @@ printLineToBat ("cd qtbase");
 printLineToBat ("if \"%~1\"==\"step2\" goto step2");
 
 # step1: compile openssl and do configure. For some reason, can't continue script execution after configure, have to make step2
-
+printLineToBat ("IF EXIST $openssl_dir\\build GOTO OPENSSL_ALREAD_COMPILED");
 printLineToBat ("wget --no-check-certificate $openssl_download");
 printLineToBat ("7z x openssl-$openssl_version.tar.gz");
 printLineToBat ("7z x openssl-$openssl_version.tar");
 printLineToBat ("rm openssl-$openssl_version.tar.gz");
 printLineToBat ("rm openssl-$openssl_version.tar");
 printLineToBat ("cd $openssl_dir");
-# now only release
-printLineToBat ("perl Configure VC-$openssl_arch no-asm no-shared --prefix=%cd%\\build --openssldir=%cd%\\build");
+printLineToBat ("perl Configure VC-$openssl_arch no-asm no-shared no-tests --prefix=%cd%\\build --openssldir=%cd%\\build");
 printLineToBat ("nmake");
 printLineToBat ("nmake install");
+printLineToBat (":OPENSSL_ALREAD_COMPILED");
 # go back to  qtbase
 printLineToBat ("cd ..");
 
