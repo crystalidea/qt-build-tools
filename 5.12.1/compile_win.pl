@@ -3,11 +3,11 @@ use strict;
 die "Cannot proceed without the 'bin' folder'" if (!-e "bin");
 
 my $arch = $ARGV[0];
-my $openssl_v_major = "1.0.2"; # The 1.0.2 series is Long Term Support (LTS) release, supported until 31st December 2019
-my $openssl_v_minor = "l";
+my $openssl_v_major = "1.1.1"; # The 1.1.1 series is Long Term Support (LTS) release, supported until 11th September 2023
+my $openssl_v_minor = "a";
 my $openssl_version = "$openssl_v_major$openssl_v_minor";
 my $openssl_dir = "openssl-$openssl_version"; 
-my $openssl_download = "https://www.openssl.org/source/old/$openssl_v_major/openssl-$openssl_version.tar.gz";
+my $openssl_download = "https://www.openssl.org/source/openssl-$openssl_version.tar.gz";
 my $openssl_arch = $arch eq "amd64" ? "WIN64A" : "WIN32";
 my $openssl_do_ms = $arch eq "amd64" ? "do_win64a" : "do_ms";
 
@@ -40,25 +40,16 @@ printLineToBat ("7z x openssl-$openssl_version.tar");
 printLineToBat ("rm openssl-$openssl_version.tar.gz");
 printLineToBat ("rm openssl-$openssl_version.tar");
 printLineToBat ("cd $openssl_dir");
-# build debug
-printLineToBat ("perl Configure no-asm no-shared --prefix=%cd%\\Debug --openssldir=%cd%\\Debug debug-VC-$openssl_arch");
-printLineToBat ("call ms\\$openssl_do_ms");
-printLineToBat ("nmake -f ms\\nt.mak");
-printLineToBat ("nmake -f ms\\nt.mak install");
-printLineToBat ("xcopy tmp32.dbg\\lib.pdb Debug\\lib\\"); # Telegram does it.
-printLineToBat ("nmake -f ms\\nt.mak clean");
-# now release
-printLineToBat ("perl Configure no-asm no-shared --prefix=%cd%\\Release --openssldir=%cd%\\Release VC-$openssl_arch");
-printLineToBat ("call ms\\$openssl_do_ms");
-printLineToBat ("nmake -f ms\\nt.mak");
-printLineToBat ("nmake -f ms\\nt.mak install");
-printLineToBat ("xcopy tmp32\\lib.pdb Release\\lib\\"); # Telegram does it.
-printLineToBat ("nmake -f ms\\nt.mak clean");
+# now only release
+printLineToBat ("perl Configure VC-$openssl_arch no-asm no-shared --prefix=%cd%\\build --openssldir=%cd%\\build");
+printLineToBat ("nmake");
+printLineToBat ("nmake install");
 # go back to  qtbase
 printLineToBat ("cd ..");
 
 # -developer-build creates an in-source build for developer usage.
-printLineToBat ("configure -opensource -developer-build -confirm-license -opengl desktop -mp -nomake tests -nomake examples -I \"%cd%\\$openssl_dir\\Release\\include\" -openssl-linked OPENSSL_LIBS_DEBUG=\"%cd%\\$openssl_dir\\Debug\\lib\\ssleay32.lib %cd%\\$openssl_dir\\Debug\\lib\\libeay32.lib\" OPENSSL_LIBS_RELEASE=\"%cd%\\$openssl_dir\\Release\\lib\\ssleay32.lib %cd%\\$openssl_dir\\Release\\lib\\libeay32.lib\"");
+# openssl: see https://bugreports.qt.io/browse/QTBUG-65501
+printLineToBat ("configure -opensource -developer-build -confirm-license -opengl desktop -mp -nomake tests -nomake examples -I \"%cd%\\$openssl_dir\\build\\include\" -openssl-linked OPENSSL_LIBS=\"%cd%\\$openssl_dir\\build\\lib\\libssl.lib %cd%\\$openssl_dir\\build\\lib\\libcrypto.lib -lcrypt32 -lws2_32 -lAdvapi32 -luser32\"");
 printLineToBat ("goto :EOF");
 
 # step 2:
