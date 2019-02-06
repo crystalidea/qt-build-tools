@@ -38,6 +38,10 @@ printLineToBat ("cd $openssl_dir");
 printLineToBat ("perl Configure VC-$openssl_arch no-asm no-shared no-tests --prefix=%cd%\\build --openssldir=%cd%\\build");
 printLineToBat ("nmake");
 printLineToBat ("nmake install");
+# do little clean up
+printLineToBat ("rm test\\*.exe");
+printLineToBat ("rm test\\*.pdb");
+printLineToBat ("rm test\\*.obj");
 printLineToBat (":OPENSSL_ALREAD_COMPILED");
 # go back to  qtbase
 printLineToBat ("cd ..");
