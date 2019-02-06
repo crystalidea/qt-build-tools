@@ -9,7 +9,6 @@ my $openssl_version = "$openssl_v_major$openssl_v_minor";
 my $openssl_dir = "openssl-$openssl_version"; 
 my $openssl_download = "https://www.openssl.org/source/openssl-$openssl_version.tar.gz";
 my $openssl_arch = $arch eq "amd64" ? "WIN64A" : "WIN32";
-my $openssl_do_ms = $arch eq "amd64" ? "do_win64a" : "do_ms";
 
 $arch = "x86" if ($arch eq ''); # specify x86 is nothing is specified
 die "Please specify architecture (x86 or amd64)" if ($arch ne "x86" && $arch ne "amd64"); # die if user specified anything except x86 or amd64
@@ -24,10 +23,6 @@ printLineToBat ("SET PATH=%PATH%;%cd%\\bin"); # add bin folder to the path for 7
 printLineToBat ("CALL \"C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Auxiliary\\Build\\vcvarsall.bat\" $arch");
 printLineToBat ("SET _ROOT=%cd%");
 printLineToBat ("SET PATH=%_ROOT%\\qtbase\\bin;%_ROOT%\\gnuwin32\\bin;%PATH%"); # http://doc.qt.io/qt-5/windows-building.html
-printLineToBat ("SET LLVM_INSTALL_DIR=C:\\LLVM"); # add clang bin folder to the path (to compile qdoc)
-printLineToBat ("SET PATH=%PATH%;%LLVM_INSTALL_DIR%\\bin"); # must be added for qdoc because it requires libclang.dll
-# todo: download python
-printLineToBat ("SET PATH=%PATH%;C:\\Python27"); # add bin folder to the path for 7z and wget
 
 printLineToBat ("cd qtbase");
 printLineToBat ("if \"%~1\"==\"step2\" goto step2");
