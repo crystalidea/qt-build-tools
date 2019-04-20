@@ -111,6 +111,9 @@ QPalette * qt_mac_createSystemPalette()
 
     palette->setBrush(QPalette::ToolTipBase, qt_mac_toQBrush([NSColor controlColor]));
 
+    // fix for https://bugreports.qt.io/browse/QTBUG-71740
+    palette->setColor(QPalette::Normal, QPalette::Link, qt_mac_toQColor([NSColor linkColor]));
+
     return palette;
 }
 
