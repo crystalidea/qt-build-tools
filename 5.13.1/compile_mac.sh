@@ -4,7 +4,7 @@
 # 1. brew
 # 2. brew install llvm (https://bugreports.qt.io/browse/QTBUG-66353)
 
-export PATH=$PATH:/usr/local/Qt-5.13.0/bin
+export PATH=$PATH:/usr/local/Qt-5.13.1/bin
 
 cd qtbase
 
@@ -66,7 +66,7 @@ echo maki | sudo -S sudo make install
 #cd ../qtmacextras
 #make  -j 12 docs
 
-#echo maki | sudo -S cp -f -r ../qtbase/doc /usr/local/Qt-5.13.0/
+#echo maki | sudo -S cp -f -r ../qtbase/doc /usr/local/Qt-5.13.1/
 
 cd /usr/local
-zip -r ~/Desktop/qt5.13.0_mac.zip Qt-5.13.0/*
+zip -r ~/Desktop/qt5.13.1_mac.zip Qt-5.13.1/*
