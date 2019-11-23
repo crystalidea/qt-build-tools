@@ -165,6 +165,12 @@ void QNSWindowBackingStore::flush(QWindow *window, const QRegion &region, const 
 
     const QWindow *topLevelWindow = this->window();
 
+    if (window->handle()->isForeignWindow()) {
+	NSView *view = static_cast<QCocoaWindow *>(window->handle())->view();
+	NSRect nsRect = NSRectFromCGRect(region.boundingRect().toCGRect());
+	[view displayRect:nsRect];
+	return;
+    }
     Q_ASSERT(topLevelWindow->handle() && window->handle());
     Q_ASSERT(!topLevelWindow->handle()->isForeignWindow() && !window->handle()->isForeignWindow());
 
