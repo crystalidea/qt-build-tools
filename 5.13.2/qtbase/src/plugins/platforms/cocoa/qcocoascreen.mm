@@ -131,7 +131,7 @@ void QCocoaScreen::initializeScreens()
         }
     }, nullptr);
 
-    static QMacNotificationObserver screenParamaterObserver(NSApplication.sharedApplication,
+    static QMacNotificationObserver screenParameterObserver(NSApplication.sharedApplication,
         NSApplicationDidChangeScreenParametersNotification, [&]() {
             qCDebug(lcQpaScreen) << "Received screen parameter change notification";
             updateScreensIfNeeded(); // As a last resort we update screens here
@@ -187,7 +187,7 @@ void QCocoaScreen::updateScreens()
     for (CGDirectDisplayID displayId : onlineDisplays) {
         Q_ASSERT(CGDisplayIsOnline(displayId));
 
-        if (CGDirectDisplayID mirroring = CGDisplayMirrorsDisplay(displayId))
+        if (CGDisplayMirrorsDisplay(displayId))
             continue;
 
         // A single physical screen can map to multiple displays IDs,
@@ -213,9 +213,7 @@ void QCocoaScreen::updateScreens()
 
     for (QScreen *screen : QGuiApplication::screens()) {
         QCocoaScreen *platformScreen = static_cast<QCocoaScreen*>(screen->handle());
-        if (!platformScreen->isOnline())
-            platformScreen->remove();
-        else if (platformScreen->isMirroring())
+        if (!platformScreen->isOnline() || platformScreen->isMirroring())
             platformScreen->remove();
     }
 }
