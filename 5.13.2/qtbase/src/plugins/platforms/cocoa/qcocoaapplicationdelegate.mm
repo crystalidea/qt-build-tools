@@ -227,10 +227,7 @@ QT_USE_NAMESPACE
         application depends on.
      */
     NSAppleEventManager *eventManager = [NSAppleEventManager sharedAppleEventManager];
-    /*[eventManager setEventHandler:self
-                      andSelector:@selector(appleEventQuit:withReplyEvent:)
-                    forEventClass:kCoreEventClass
-                       andEventID:kAEQuitApplication];*/
+    
     [eventManager setEventHandler:self
                       andSelector:@selector(getUrl:withReplyEvent:)
                     forEventClass:kInternetEventClass
@@ -241,7 +238,7 @@ QT_USE_NAMESPACE
 - (void)removeAppleEventHandlers
 {
     NSAppleEventManager *eventManager = [NSAppleEventManager sharedAppleEventManager];
-    //[eventManager removeEventHandlerForEventClass:kCoreEventClass andEventID:kAEQuitApplication];
+    
     [eventManager removeEventHandlerForEventClass:kInternetEventClass andEventID:kAEGetURL];
 }
 
@@ -374,13 +371,6 @@ QT_USE_NAMESPACE
     Q_UNUSED(replyEvent);
     NSString *urlString = [[event paramDescriptorForKeyword:keyDirectObject] stringValue];
     QWindowSystemInterface::handleFileOpenEvent(QUrl(QString::fromNSString(urlString)));
-}
-
-- (void)appleEventQuit:(NSAppleEventDescriptor *)event withReplyEvent:(NSAppleEventDescriptor *)replyEvent
-{
-    Q_UNUSED(event);
-    Q_UNUSED(replyEvent);
-    [NSApp terminate:self];
 }
 
 @end
