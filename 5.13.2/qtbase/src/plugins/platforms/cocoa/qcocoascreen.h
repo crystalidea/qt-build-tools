@@ -112,13 +112,13 @@ private:
     QRect m_geometry;
     QRect m_availableGeometry;
     QDpi m_logicalDpi;
-    qreal m_refreshRate = 0;
-    int m_depth = 0;
+    qreal m_refreshRate;
+    int m_depth;
     QString m_name;
     QImage::Format m_format;
     QSizeF m_physicalSize;
     QCocoaCursor *m_cursor;
-    qreal m_devicePixelRatio = 0;
+    qreal m_devicePixelRatio;
 
     CVDisplayLinkRef m_displayLink = nullptr;
     dispatch_source_t m_displayLinkSource = nullptr;
