@@ -52,6 +52,8 @@
 @property (class, strong, readonly) NSColor *unemphasizedSelectedTextColor NS_AVAILABLE_MAC(10_14);
 @property (class, strong, readonly) NSColor *unemphasizedSelectedContentBackgroundColor NS_AVAILABLE_MAC(10_14);
 @property (class, strong, readonly) NSArray<NSColor *> *alternatingContentBackgroundColors NS_AVAILABLE_MAC(10_14);
+// Missing from non-Mojave SDKs, even if introduced in 10.10
+@property (class, strong, readonly) NSColor *linkColor NS_AVAILABLE_MAC(10_10);
 @end
 #endif
 
