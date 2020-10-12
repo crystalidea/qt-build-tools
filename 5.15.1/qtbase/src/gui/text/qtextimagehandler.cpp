@@ -87,6 +87,10 @@ static QPixmap getPixmap(QTextDocument *doc, const QTextImageFormat &format, con
     QUrl url = QUrl(name);
     qreal sourcePixelRatio = 1.0;
     name = resolveFileName(name, &url, devicePixelRatio, &sourcePixelRatio);
+    
+    if (name.contains(QLatin1String("@2x")))
+        url = QUrl(name); // url must be updated! (QTBUG-52697)
+
     const QVariant data = doc->resource(QTextDocument::ImageResource, url);
     if (data.userType() == QMetaType::QPixmap || data.userType() == QMetaType::QImage) {
         pm = qvariant_cast<QPixmap>(data);
@@ -169,6 +173,10 @@ static QImage getImage(QTextDocument *doc, const QTextImageFormat &format, const
     QUrl url = QUrl(name);
     qreal sourcePixelRatio = 1.0;
     name = resolveFileName(name, &url, devicePixelRatio, &sourcePixelRatio);
+
+    if (name.contains(QLatin1String("@2x")))
+        url = QUrl(name); // url must be updated! (QTBUG-52697)
+
     const QVariant data = doc->resource(QTextDocument::ImageResource, url);
     if (data.userType() == QMetaType::QImage) {
         image = qvariant_cast<QImage>(data);
