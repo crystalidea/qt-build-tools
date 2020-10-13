@@ -130,9 +130,11 @@ static QSize getPixmapSize(QTextDocument *doc, const QTextImageFormat &format)
     const bool hasHeight = format.hasProperty(QTextFormat::ImageHeight);
     const int height = qRound(format.height());
 
+    QPaintDevice *pdev = doc->documentLayout()->paintDevice();
+
     QSize size(width, height);
     if (!hasWidth || !hasHeight) {
-        pm = getPixmap(doc, format);
+        pm = getPixmap(doc, format, pdev ? pdev->devicePixelRatioF() : 1.0);
         const int pmWidth = pm.width() / pm.devicePixelRatio();
         const int pmHeight = pm.height() / pm.devicePixelRatio();
 
@@ -151,7 +153,7 @@ static QSize getPixmapSize(QTextDocument *doc, const QTextImageFormat &format)
     }
 
     qreal scale = 1.0;
-    QPaintDevice *pdev = doc->documentLayout()->paintDevice();
+    
     if (pdev) {
         if (pm.isNull())
             pm = getPixmap(doc, format);
