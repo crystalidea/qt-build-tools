@@ -194,26 +194,6 @@ constexpr backwards_t<R> backwards(R&& r) { return {std::forward<R>(r)}; }
 #error "32-bit builds are not supported"
 #endif
 
-class QMacVersion
-{
-public:
-    enum VersionTarget {
-        ApplicationBinary,
-        QtLibraries
-    };
-
-    static QOperatingSystemVersion buildSDK(VersionTarget target = ApplicationBinary);
-    static QOperatingSystemVersion deploymentTarget(VersionTarget target = ApplicationBinary);
-    static QOperatingSystemVersion currentRuntime();
-
-private:
-    QMacVersion() = default;
-    using VersionTuple = QPair<QOperatingSystemVersion, QOperatingSystemVersion>;
-    static VersionTuple versionsForImage(const mach_header *machHeader);
-    static VersionTuple applicationVersion();
-    static VersionTuple libraryVersion();
-};
-
 // -------------------------------------------------------------------------
 
 QT_END_NAMESPACE
