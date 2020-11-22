@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export PATH=$PATH:/usr/local/Qt-5.15.1/bin
+export PATH=$PATH:/usr/local/Qt-5.15.2/bin
 
 cd qtbase
 
@@ -20,4 +20,4 @@ make -j 12
 echo maki | sudo -S sudo make install
 
 cd /usr/local
-zip -r ~/Desktop/qt5.15.1_mac.zip Qt-5.15.1/*
+zip -r ~/Desktop/qt5.15.2_mac.zip Qt-5.15.2/*
