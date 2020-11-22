@@ -3870,6 +3870,7 @@ void QMacStyle::drawControl(ControlElement ce, const QStyleOption *opt, QPainter
             const auto cs = d->effectiveAquaSizeConstrain(opt, w);
             // Extra hacks to get the proper pressed appreance when not selected or selected and inactive
             const bool needsInactiveHack = (!isActive && isSelected);
+            const bool isBigSurOrAbove = QOperatingSystemVersion::current() >= QOperatingSystemVersion::MacOSBigSur;
             const auto ct = !needsInactiveHack && (isSelected || tp == QStyleOptionTab::OnlyOneTab) ?
                     QMacStylePrivate::Button_PushButton :
                     QMacStylePrivate::Button_PopupButton;
@@ -3878,6 +3879,12 @@ void QMacStyle::drawControl(ControlElement ce, const QStyleOption *opt, QPainter
             auto *pb = static_cast<NSButton *>(d->cocoaControl(cw));
 
             auto vOffset = isPopupButton ? 1 : 2;
+            if (isBigSurOrAbove) {
+                // Make it 1, otherwise, offset is very visible compared
+                // to selected tab (which is not a popup button).
+                vOffset = 1;
+            }
+
             if (tabDirection == QMacStylePrivate::East)
                 vOffset -= 1;
             const auto outerAdjust = isPopupButton ? 1 : 4;
@@ -3894,9 +3901,22 @@ void QMacStyle::drawControl(ControlElement ce, const QStyleOption *opt, QPainter
                     frameRect = frameRect.adjusted(-innerAdjust, 0, outerAdjust, 0);
                 else
                     frameRect = frameRect.adjusted(-outerAdjust, 0, innerAdjust, 0);
+
+                if (isSelected && isBigSurOrAbove) {
+                    // 1 pixed of 'roundness' is still visible on the right
+                    // (the left is OK, it's rounded).
+                    frameRect = frameRect.adjusted(0, 0, 1, 0);
+                }
+
                 break;
             case QStyleOptionTab::Middle:
                 frameRect = frameRect.adjusted(-innerAdjust, 0, innerAdjust, 0);
+
+                if (isSelected && isBigSurOrAbove) {
+                    // 1 pixel of 'roundness' is still visible on both
+                    // sides - left and right.
+                    frameRect = frameRect.adjusted(-1, 0, 1, 0);
+                }
                 break;
             case QStyleOptionTab::End:
                 // Pressed state hack: tweak adjustments in preparation for flip below
@@ -3904,6 +3924,11 @@ void QMacStyle::drawControl(ControlElement ce, const QStyleOption *opt, QPainter
                     frameRect = frameRect.adjusted(-innerAdjust, 0, outerAdjust, 0);
                 else
                     frameRect = frameRect.adjusted(-outerAdjust, 0, innerAdjust, 0);
+
+                if (isSelected && isBigSurOrAbove) {
+                    // 1 pixel of 'roundness' is still visible on the left.
+                    frameRect = frameRect.adjusted(-1, 0, 0, 0);
+                }
                 break;
             case QStyleOptionTab::OnlyOneTab:
                 frameRect = frameRect.adjusted(-outerAdjust, 0, outerAdjust, 0);
@@ -3951,7 +3976,10 @@ void QMacStyle::drawControl(ControlElement ce, const QStyleOption *opt, QPainter
                 NSPopUpArrowPosition oldPosition = NSPopUpArrowAtCenter;
                 NSPopUpButtonCell *pbCell = nil;
                 auto rAdjusted = r;
-                if (isPopupButton && tp == QStyleOptionTab::OnlyOneTab) {
+                if (isPopupButton && (tp == QStyleOptionTab::OnlyOneTab || isBigSurOrAbove)) {
+                    // Note: starting from macOS BigSur NSPopupButton has this
+                    // arrow 'button' in a different place and it became
+                    // quite visible 'in between' inactive tabs.
                     pbCell = static_cast<NSPopUpButtonCell *>(pb.cell);
                     oldPosition = pbCell.arrowPosition;
                     pbCell.arrowPosition = NSPopUpNoArrow;
@@ -3959,6 +3987,12 @@ void QMacStyle::drawControl(ControlElement ce, const QStyleOption *opt, QPainter
                         // NSPopUpButton in this state is smaller.
                         rAdjusted.origin.x -= 3;
                         rAdjusted.size.width += 6;
+                        if (isBigSurOrAbove) {
+                            rAdjusted.origin.y -= 1;
+                            rAdjusted.size.height += 1;
+                            if (tp == QStyleOptionTab::End)
+                                rAdjusted.origin.x -= 2;
+                        }
                     }
                 }
 
