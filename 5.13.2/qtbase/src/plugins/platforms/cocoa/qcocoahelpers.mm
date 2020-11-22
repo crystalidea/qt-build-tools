@@ -369,10 +369,6 @@ QString qt_mac_removeAmpersandEscapes(QString s)
 
 // -------------------------------------------------------------------------
 
-#if !defined(Q_PROCESSOR_X86_64)
-#error "32-bit builds are not supported"
-#endif
-
 QT_END_NAMESPACE
 
 /*! \internal
