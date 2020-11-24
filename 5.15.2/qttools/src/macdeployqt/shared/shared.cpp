@@ -33,6 +33,7 @@
 #include <QDir>
 #include <QRegExp>
 #include <QSet>
+#include <QProcess>
 #include <QStack>
 #include <QDirIterator>
 #include <QLibraryInfo>
