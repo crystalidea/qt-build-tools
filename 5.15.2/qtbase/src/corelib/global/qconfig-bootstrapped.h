@@ -104,7 +104,7 @@
 #endif
 #define QT_FEATURE_lttng -1
 #define QT_NO_QOBJECT
-#define QT_FEATURE_process -1
+#define QT_FEATURE_process 1
 #define QT_FEATURE_regularexpression -1
 #ifdef __GLIBC_PREREQ
 # define QT_FEATURE_renameat2 (__GLIBC_PREREQ(2, 28) ? 1 : -1)

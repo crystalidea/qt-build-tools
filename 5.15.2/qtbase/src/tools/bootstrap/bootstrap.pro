@@ -59,6 +59,7 @@ SOURCES += \
            ../../corelib/io/qurlidna.cpp \
            ../../corelib/io/qurlquery.cpp \
            ../../corelib/io/qurlrecode.cpp \
+           ../../corelib/io/qprocess.cpp \
            ../../corelib/kernel/qcoreapplication.cpp \
            ../../corelib/kernel/qcoreglobaldata.cpp \
            ../../corelib/kernel/qmetatype.cpp \
@@ -123,7 +124,8 @@ unix:SOURCES += ../../corelib/kernel/qcore_unix.cpp \
                 ../../corelib/kernel/qsystemsemaphore_unix.cpp \
                 ../../corelib/io/qfilesystemengine_unix.cpp \
                 ../../corelib/io/qfilesystemiterator_unix.cpp \
-                ../../corelib/io/qfsfileengine_unix.cpp
+                ../../corelib/io/qfsfileengine_unix.cpp \
+                ../../corelib/io/qprocess_unix.cpp
 
 win32:SOURCES += ../../corelib/global/qoperatingsystemversion_win.cpp \
                  ../../corelib/io/qfilesystemengine_win.cpp \
@@ -134,13 +136,15 @@ win32:SOURCES += ../../corelib/global/qoperatingsystemversion_win.cpp \
                  ../../corelib/kernel/qsystemsemaphore_win.cpp \
                  ../../corelib/plugin/qsystemlibrary.cpp \
                  ../../corelib/kernel/qwinregistry.cpp \
+                 ../../corelib/io/qprocess_win.cpp
 
 mac {
     SOURCES += \
         ../../corelib/kernel/qcoreapplication_mac.cpp \
         ../../corelib/kernel/qcore_mac.mm \
         ../../corelib/global/qoperatingsystemversion_darwin.mm \
-        ../../corelib/kernel/qcore_foundation.mm
+        ../../corelib/kernel/qcore_foundation.mm \
+        ../../corelib/io/qprocess_darwin.mm
 
     LIBS += -framework Foundation
     osx: LIBS_PRIVATE += -framework CoreServices
