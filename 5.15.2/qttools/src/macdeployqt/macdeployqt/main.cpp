@@ -232,7 +232,9 @@ int main(int argc, char **argv)
         // Update deploymentInfo.deployedFrameworks - the QML imports
         // may have brought in extra frameworks as dependencies.
         deploymentInfo.deployedFrameworks += findAppFrameworkNames(appBundlePath);
-        deploymentInfo.deployedFrameworks = deploymentInfo.deployedFrameworks.toSet().toList();
+        QSet<QString> deployedFrameworks(deploymentInfo.deployedFrameworks.begin(),
+            deploymentInfo.deployedFrameworks.end());
+        deploymentInfo.deployedFrameworks = deployedFrameworks.values();
     }
 
     if (plugins && !deploymentInfo.qtPath.isEmpty()) {

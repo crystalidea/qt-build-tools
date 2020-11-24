@@ -30,7 +30,6 @@
 #include <QStringList>
 #include <QDebug>
 #include <iostream>
-#include <QProcess>
 #include <QDir>
 #include <QRegExp>
 #include <QSet>
@@ -41,7 +40,6 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QJsonValue>
-#include <QRegularExpression>
 #include "shared.h"
 
 #ifdef Q_OS_DARWIN
@@ -181,7 +179,7 @@ OtoolInfo findDependencyInfo(const QString &binaryPath)
         return info;
     }
 
-    static const QRegularExpression regexp(QStringLiteral(
+    static const QRegExp regexp(QStringLiteral(
         "^\\t(.+) \\(compatibility version (\\d+\\.\\d+\\.\\d+), "
         "current version (\\d+\\.\\d+\\.\\d+)(, weak)?\\)$"));
 
@@ -938,7 +936,7 @@ bool DeploymentInfo::containsModule(const QString &module, const QString &libInF
         return true;
     }
     // Check for dylib
-    const QRegularExpression dylibRegExp(QLatin1String("libQt[0-9]+") + module +
+    const QRegExp dylibRegExp(QLatin1String("libQt[0-9]+") + module +
                                          libInFix + QLatin1String(".[0-9]+.dylib"));
     return deployedFrameworks.filter(dylibRegExp).size() > 0;
 }
@@ -1498,10 +1496,10 @@ QSet<QString> codesignBundle(const QString &identity,
 
         // Check if there are unsigned dependencies, sign these first.
         QStringList dependencies =
-                getBinaryDependencies(rootBinariesPath, binary, additionalBinariesContainingRpaths).toSet()
-                .subtract(signedBinaries)
-                .subtract(pendingBinariesSet)
-                .toList();
+                getBinaryDependencies(rootBinariesPath, binary, additionalBinariesContainingRpaths);
+
+        QSet<QString> dependenciesSet(dependencies.begin(), dependencies.end());
+        dependencies = dependenciesSet.subtract(signedBinaries).subtract(pendingBinariesSet).values();
 
         if (!dependencies.isEmpty()) {
             pendingBinaries.push(binary);
