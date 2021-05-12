@@ -20,7 +20,7 @@ my $batfile = 'compile_win.bat';
 open BAT, '>', $batfile;
 
 printLineToBat ("SET PATH=%PATH%;%cd%\\bin"); # add bin folder to the path for 7z and wget
-printLineToBat ("CALL \"C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Auxiliary\\Build\\vcvarsall.bat\" $arch");
+printLineToBat ("CALL \"C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Auxiliary\\Build\\vcvarsall.bat\" $arch");
 printLineToBat ("SET _ROOT=%cd%");
 printLineToBat ("SET PATH=%_ROOT%\\qtbase\\bin;%_ROOT%\\gnuwin32\\bin;%PATH%"); # http://doc.qt.io/qt-5/windows-building.html
 
