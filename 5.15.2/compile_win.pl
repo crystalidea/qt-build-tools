@@ -4,7 +4,7 @@ die "Cannot proceed without the 'bin' folder'" if (!-e "bin");
 
 my $arch = $ARGV[0];
 my $openssl_v_major = "1.1.1"; # The 1.1.1 series is Long Term Support (LTS) release, supported until 11th September 2023
-my $openssl_v_minor = "a";
+my $openssl_v_minor = "k";
 my $openssl_version = "$openssl_v_major$openssl_v_minor";
 my $openssl_dir = "openssl-$openssl_version"; 
 my $openssl_download = "https://www.openssl.org/source/openssl-$openssl_version.tar.gz";
