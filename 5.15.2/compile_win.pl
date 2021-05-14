@@ -42,6 +42,8 @@ printLineToBat ("nmake install");
 printLineToBat ("rm test\\*.exe");
 printLineToBat ("rm test\\*.pdb");
 printLineToBat ("rm test\\*.obj");
+printLineToBat ("del /s /f /q out32");
+printLineToBat ("del /s /f /q out32.dbg");
 printLineToBat ("cd .."); # go back to qtbase
 
 printLineToBat (":OPENSSL_ALREAD_COMPILED");
@@ -60,14 +62,8 @@ printLineToBat ("..\\qtbase\\bin\\qmake");
 printLineToBat ("nmake");
 printLineToBat ("cd ..\\qtbase");
 printLineToBat ("cd .."); # go up to qt dir
-# openssl clean up
-printLineToBat ("cd qtbase");
-printLineToBat ("cd $openssl_dir");
-printLineToBat ("del /s /f /q out32");
-printLineToBat ("del /s /f /q out32.dbg");
-printLineToBat ("cd ..");
-printLineToBat ("cd ..");
-# the rest
+
+# clean up
 printLineToBat ("del *.obj /s /f");
 printLineToBat ("del *.ilk /s /f");
 printLineToBat ("del *.pch /s /f");
