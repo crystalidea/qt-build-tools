@@ -20,4 +20,4 @@ make -j 16
 echo maki | sudo -S sudo make install
 
 cd /usr/local
-zip -r ~/Desktop/qt5.15.4_mac.zip Qt-5.15.4-static/*
+zip -r ~/Desktop/qt5.15.4_mac_static.zip Qt-5.15.4-static/*
