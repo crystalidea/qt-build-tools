@@ -1,5 +1,8 @@
 #!/bin/bash
 
+makej () { 
+   make -j$(sysctl -n hw.ncpu) 
+}
 export PATH=$PATH:$(pwd)/qtbase/bin
 
 cd qtbase

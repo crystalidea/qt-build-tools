@@ -1,6 +1,8 @@
 #!/bin/bash
 
-alias makej="make -j $(sysctl hw.ncpu | awk '{print $2}')"
+makej () { 
+   make -j$(sysctl -n hw.ncpu) 
+}
 export PATH=$PATH:/usr/local/Qt-5.15.2/bin
 
 cd qtbase
