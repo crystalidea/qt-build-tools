@@ -890,7 +890,7 @@ QAccessibleWindowContainer::QAccessibleWindowContainer(QWidget *w)
 
 int QAccessibleWindowContainer::childCount() const
 {
-    if (container()->containedWindow())
+    if (container()->containedWindow() && QAccessible::queryAccessibleInterface(container()->containedWindow()))
         return 1;
     return 0;
 }
