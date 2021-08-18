@@ -3,7 +3,8 @@
 makej () { 
    make -j$(sysctl -n hw.ncpu) 
 }
-export PATH=$PATH:/usr/local/Qt-5.15.4/bin
+
+export PATH=$PATH:$(pwd)/qtbase/bin
 
 cd qtbase
 
