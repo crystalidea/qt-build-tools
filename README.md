@@ -4,7 +4,7 @@ This is a set of build tools and required patches to build Qt yourself and distr
 
 For macOS we currently distribute two binaries:
 
-- Modern, compiled with [Qt 5.15.2](5.15.2) for macOS 10.13+. Qt contains number of patches (found in the Qt issues tracker) in order to be compiled and used normally. If you own a commercial license it's recommended to use [Qt 5.15.4](5.15.4) where all issues were fixed already.
+- Modern, compiled with [Qt 5.15.2](5.15.2) for macOS 10.13+. Qt contains number of patches (found in the Qt issues tracker) in order to be compiled and used normally. If you own a commercial license it's recommended to use [Qt 5.15.4](5.15.4) where all those issues (and many others) were fixed already.
 
 - Legacy, compiled with [Qt 5.6.3](5.6.3) for macOS 10.7-10.12. Qt contains number of patches (found in the Qt issues tracker) in order to be compiled and used normally. To compile Qt itself we used macOS 10.13 and XCode 8. 
 
