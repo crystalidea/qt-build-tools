@@ -23,4 +23,4 @@ makej
 echo maki | sudo -S sudo make install
 
 cd /usr/local
-zip -r ~/Desktop/qt5.15.4_mac_arm.zip Qt-5.15.4-arm/*
+zip -r ~/Desktop/qt5.15.5_mac_arm.zip Qt-5.15.5-arm/*
