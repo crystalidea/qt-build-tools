@@ -7,7 +7,7 @@ export PATH=$PATH:$(pwd)/qtbase/bin
 
 cd qtbase
 
-./configure -device-option QMAKE_APPLE_DEVICE_ARCHS=arm64 -opensource -confirm-license -nomake examples -nomake tests -no-openssl -securetransport -prefix /usr/local/Qt-5.15.4-arm
+./configure -device-option QMAKE_APPLE_DEVICE_ARCHS=arm64 -opensource -confirm-license -nomake examples -nomake tests -no-openssl -securetransport -prefix /usr/local/Qt-5.15.5-arm
 
 makej
 echo maki | sudo -S sudo make install
