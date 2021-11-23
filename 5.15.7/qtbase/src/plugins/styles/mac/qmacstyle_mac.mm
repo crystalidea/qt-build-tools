@@ -3726,7 +3726,18 @@ void QMacStyle::drawControl(ControlElement ce, const QStyleOption *opt, QPainter
 
             pb.enabled = isEnabled;
             [pb highlight:isPressed];
-            pb.state = isHighlighted && !isPressed ? NSOnState : NSOffState;
+            
+            // In the past 'highlight' was doing its job nicely, giving an image of recessed
+            // (e.g.) blue button which looks differently from un-pressed 'default' button.
+            // Starting from Monterey this is not enough - with simple highlight and the state
+            // 'off' we get a button that looks like have it suddenly lost its theme embellishment
+            // and depending on the app's appearance, we may also erroneously draw a text with
+            // (e.g.) white on light grey.
+            if (QOperatingSystemVersion::current() >= QOperatingSystemVersion::MacOSMonterey)
+                pb.state = isHighlighted || isPressed ? NSControlStateValueOn : NSControlStateValueOff;
+            else
+                pb.state = isHighlighted && !isPressed ? NSControlStateValueOn : NSControlStateValueOff;
+
             d->drawNSViewInRect(pb, frameRect, p, ^(CGContextRef, const CGRect &r) {
                 [pb.cell drawBezelWithFrame:r inView:pb.superview];
             });
