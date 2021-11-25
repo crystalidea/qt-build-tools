@@ -3724,6 +3724,9 @@ void QMacStyle::drawControl(ControlElement ce, const QStyleOption *opt, QPainter
 
             const bool isEnabled = btn->state & State_Enabled;
             const bool isPressed = btn->state & State_Sunken;
+            const bool isDefault = (btn->features & QStyleOptionButton::DefaultButton)
+                                   || (btn->features & QStyleOptionButton::AutoDefaultButton
+                                       && d->autoDefaultButton == btn->styleObject);
             const bool isHighlighted = isActive &&
                     ((btn->state & State_On)
                      || (btn->features & QStyleOptionButton::DefaultButton)
@@ -3743,6 +3746,32 @@ void QMacStyle::drawControl(ControlElement ce, const QStyleOption *opt, QPainter
             pb.enabled = isEnabled;
             [pb highlight:isPressed];
             pb.state = isHighlighted && !isPressed ? NSOnState : NSOffState;
+
+            if (QOperatingSystemVersion::current() >= QOperatingSystemVersion::MacOSMonterey) {
+                // Starting from macOS Monterey buttons look/work slightly differently. First, the
+                // the default/autodefault buttons. Setting the state to ON is enough to make
+                // NSButtonPushOnPushOf type of buttons to use the accent color. To make it look
+                // recessed/pressed, we have to combine _both_ the state ON, and highlight:YES
+                // (previously, we were simply using highlight:YES and state OFF for such case).
+                // Non-default buttons work differently - they don't use accent color, but
+                // instead either darker or lighter bezel when pressed(depending on the theme),
+                // which is simply activated by highlight:YES (those buttons are not push on/push
+                // off type anymore, so seem to ignore the state).
+
+                // We only adust those:
+                if (ct == QMacStylePrivate::Button_PushButton) {
+                    if (isDefault)
+                        pb.state = isActive ? NSControlStateValueOn : NSControlStateValueOff;
+                    else {
+                        pb.buttonType = NSButtonTypeMomentaryPushIn;
+                        if (btn->state & State_On)
+                            [pb highlight:YES];
+                    }
+                }
+                // Note, for NSButtonTypeMomentaryPushIn we'll have to later adjust the text color
+                // accordingly, see CE_PushButtonLabel :(
+            }
+
             d->drawNSViewInRect(pb, frameRect, p, ^(CGContextRef, const CGRect &r) {
                 [pb.cell drawBezelWithFrame:r inView:pb.superview];
             });
@@ -3787,13 +3816,21 @@ void QMacStyle::drawControl(ControlElement ce, const QStyleOption *opt, QPainter
 
             const auto ct = cocoaControlType(&btn, w);
 
+            const bool isDefault = (btn.features & QStyleOptionButton::DefaultButton && !d->autoDefaultButton)
+                                    || d->autoDefaultButton == btn.styleObject;
+
             if (!hasMenu && ct != QMacStylePrivate::Button_SquareButton) {
-                if (isPressed
-                    || (isActive && isEnabled
-                        && ((btn.state & State_On)
-                            || ((btn.features & QStyleOptionButton::DefaultButton) && !d->autoDefaultButton)
-                            || d->autoDefaultButton == btn.styleObject)))
+                if (isPressed || (isActive && isEnabled
+                                  && ((btn.state & State_On) || isDefault))) // Hello, LISP!
                 btn.palette.setColor(QPalette::ButtonText, Qt::white);
+            }
+
+            if (!isDarkMode() && QOperatingSystemVersion::current() >= QOperatingSystemVersion::MacOSMonterey) {
+                if (!isDefault) {
+                    // Yes, it's a gray button of type NSButtonTypeMomentaryPushIn (see CE_PushButtonBevel above),
+                    // white text (if set in the previous statement) would be invisible.
+                    btn.palette.setColor(QPalette::ButtonText, Qt::black);
+                }
             }
 
             if ((!hasIcon && !hasMenu) || (hasIcon && !hasText)) {
