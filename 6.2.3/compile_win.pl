@@ -65,7 +65,9 @@ printLineToBat (":OPENSSL_ALREAD_COMPILED");
 
 # openssl: see https://bugreports.qt.io/browse/QTBUG-65501
 
-my $skipped_modules = "qt3d qt5compat qtactiveqt qtcharts qtcoap qtconnectivity qtdatavis3d qtdeclarative qtdoc qtlottie qtmqtt qtmultimedia qtnetworkauth qtopcua qtpositioning qtquick3d qtquicktimeline qtremoteobjects qtscxml qtsensors qtserialbus qtserialport qtshadertools qtsvg qttranslations qtvirtualkeyboard qtwayland qtwebchannel qtwebengine qtwebsockets qtwebview";
+printLineToBat ("7z x qt5compat_no_qml.7z");
+
+my $skipped_modules = "qt3d qtactiveqt qtcharts qtcoap qtconnectivity qtdatavis3d qtdeclarative qtdoc qtlottie qtmqtt qtmultimedia qtnetworkauth qtopcua qtpositioning qtquick3d qtquicktimeline qtremoteobjects qtscxml qtsensors qtserialbus qtserialport qtshadertools qtsvg qttranslations qtvirtualkeyboard qtwayland qtwebchannel qtwebengine qtwebsockets qtwebview";
 
 my $skipped_modules_cmd;
 
