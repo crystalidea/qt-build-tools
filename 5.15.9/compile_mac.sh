@@ -9,7 +9,7 @@ export PATH=$PATH:$(pwd)/qtbase/bin
 
 cd qtbase
 
-./configure "QMAKE_APPLE_DEVICE_ARCHS=arm64 x86_64" -opensource -confirm-license -nomake examples -nomake tests -no-openssl -securetransport
+./configure QMAKE_APPLE_DEVICE_ARCHS="x86_64 arm64" -opensource -confirm-license -nomake examples -nomake tests -no-openssl -securetransport
 
 makej
 echo $1 | sudo -S sudo make install
