@@ -12,7 +12,7 @@ For macOS we currently distribute two binaries:
 
 To apply patches and compile Qt the same as we do, simply copy the contents of the folder ([Qt 5.15.2](5.15.2) or [Qt 5.6.3](5.6.3)) to the official Qt source tree (overwriting existing files of cause).
 
-Compiling your app with both modern and legacy Qt can be done on modern macOS and [XCode](https://apps.apple.com/us/app/xcode/id497799835?mt=12).
+Compiling your app with both modern and legacy Qt can be done on modern macOS with [XCode](https://apps.apple.com/us/app/xcode/id497799835?mt=12).
 
 When compiling a project with Qt 5.6.3 on arm64 host machine some additional steps are required in your .pro file:
 
