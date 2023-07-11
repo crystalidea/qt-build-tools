@@ -470,6 +470,14 @@ const QOperatingSystemVersion QOperatingSystemVersion::MacOSBigSur = [] {
         return QOperatingSystemVersion(QOperatingSystemVersion::MacOS, 10, 16);
 }();
 
+const QOperatingSystemVersion QOperatingSystemVersion::MacOSMonterey = [] {
+        return QOperatingSystemVersion(QOperatingSystemVersion::MacOS, 12, 0);
+}();
+
+const QOperatingSystemVersion QOperatingSystemVersion::MacOSVentura = [] {
+        return QOperatingSystemVersion(QOperatingSystemVersion::MacOS, 13, 0);
+}();
+
 /*!
     \variable QOperatingSystemVersion::AndroidJellyBean
     \brief a version corresponding to Android Jelly Bean (version 4.1, API level 16).
