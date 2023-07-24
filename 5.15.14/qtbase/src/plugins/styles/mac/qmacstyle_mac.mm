@@ -3803,7 +3803,7 @@ void QMacStyle::drawControl(ControlElement ce, const QStyleOption *opt, QPainter
 
             if (!hasMenu && ct != QMacStylePrivate::Button_SquareButton) {
                 if (isPressed || (isActive && isEnabled && ((btn.state & State_On) || isDefault))) {
-                    if (!isPressed && NSApplication.sharedApplication.active) {
+                    if (NSApplication.sharedApplication.active) {
                         // !isPressed means isActive, but it can differ from
                         // the actual application state, so don't set white.
                         btn.palette.setColor(QPalette::ButtonText, Qt::white);
