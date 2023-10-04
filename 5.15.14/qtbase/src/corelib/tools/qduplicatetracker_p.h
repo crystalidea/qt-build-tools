@@ -52,7 +52,7 @@
 
 #include <qglobal.h>
 
-#if QT_HAS_INCLUDE(<memory_resource>) && __cplusplus > 201402L
+#ifdef __cpp_lib_memory_resource
 #  include <unordered_set>
 #  include <memory_resource>
 #else
