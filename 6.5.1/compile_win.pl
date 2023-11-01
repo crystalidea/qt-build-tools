@@ -85,6 +85,7 @@ printLineToBat ("cmake --install . --config Release");
 printLineToBat ("cmake --install . --config Debug");
 
 # clean up
+printLineToBat ("cd .."); # since we're now in 'qt6-build' for some reason
 printLineToBat ("rmdir qt6-build /s /q");
 
 close BAT;
