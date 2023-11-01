@@ -35,6 +35,10 @@ printLineToBat ("SET _ROOT=%cd%");
 printLineToBat ("SET PATH=%_ROOT%\\qtbase\\bin;%_ROOT%\\gnuwin32\\bin;%PATH%"); # http://doc.qt.io/qt-5/windows-building.html
 printLineToBat ("SET OPENSSL_LIBS=-lUser32 -lAdvapi32 -lGdi32 -llibcrypto -llibssl");
 
+printLineToBat ("cd _tools");
+printLineToBat ("7z x cmake.7z");
+printLineToBat ("cd ..");
+
 printLineToBat ("IF EXIST qt6-build GOTO SECOND_STEP");
 printLineToBat ("mkdir qt6-build");
 printLineToBat (":SECOND_STEP");
