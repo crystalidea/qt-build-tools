@@ -35,7 +35,7 @@ printLineToBat ("SET PATH=%_ROOT%\\qtbase\\bin;%_ROOT%\\gnuwin32\\bin;%PATH%"); 
 printLineToBat ("SET OPENSSL_LIBS=-lUser32 -lAdvapi32 -lGdi32 -llibcrypto -llibssl");
 
 printLineToBat ("cd _tools");
-printLineToBat ("7z x cmake.7z");
+printLineToBat ("7z x cmake.7z -aoa");
 printLineToBat ("cd ..");
 
 printLineToBat ("IF EXIST qt6-build GOTO SECOND_STEP");
