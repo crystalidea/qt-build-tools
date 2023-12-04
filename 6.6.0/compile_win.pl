@@ -15,9 +15,10 @@ my $arch = $ARGV[0];
 my $openssl_v_major = "1.1.1"; # The 1.1.1 series is Long Term Support (LTS) release, supported until 11th September 2023
 my $openssl_v_minor = "k";
 my $openssl_version = "$openssl_v_major$openssl_v_minor";
-my $openssl_dir = "$current_dir\\openssl-$openssl_version"; 
 my $openssl_download = "https://www.openssl.org/source/openssl-$openssl_version.tar.gz";
 my $openssl_arch = $arch eq "amd64" ? "WIN64A" : "WIN32";
+my $openssl_dir = "$current_dir\\openssl-$openssl_version-$openssl_arch";
+my $openssl_7z = "openssl-$openssl_version-$openssl_arch.7z";
 
 $arch = "x86" if ($arch eq ''); # specify x86 is nothing is specified
 die "Please specify architecture (x86 or amd64)" if ($arch ne "x86" && $arch ne "amd64"); # die if user specified anything except x86 or amd64
@@ -36,6 +37,8 @@ printLineToBat ("SET OPENSSL_LIBS=-lUser32 -lAdvapi32 -lGdi32 -llibcrypto -llibs
 
 printLineToBat ("cd _tools");
 printLineToBat ("7z x cmake.7z -aoa");
+
+printLineToBat ("7z x $openssl_7z -o$openssl_dir") if (-e "_tools\\$openssl_7z");
 printLineToBat ("cd ..");
 
 printLineToBat ("IF EXIST qt6-build GOTO SECOND_STEP");
@@ -49,7 +52,9 @@ printLineToBat ("if \"%~1\"==\"step2\" goto step2");
 printLineToBat ("IF EXIST $openssl_dir\\build GOTO OPENSSL_ALREAD_COMPILED");
 printLineToBat ("wget --no-check-certificate $openssl_download");
 printLineToBat ("7z x openssl-$openssl_version.tar.gz");
-printLineToBat ("7z x openssl-$openssl_version.tar");
+printLineToBat ("7z x openssl-$openssl_version.tar -o$openssl_dir");
+printLineToBat ("mv $openssl_dir\\openssl-$openssl_version\\* $openssl_dir");
+printLineToBat ("rmdir $openssl_dir\\openssl-$openssl_version"); # empty now
 printLineToBat ("rm openssl-$openssl_version.tar.gz");
 printLineToBat ("rm openssl-$openssl_version.tar");
 printLineToBat ("cd $openssl_dir"); # go to openssl dir
