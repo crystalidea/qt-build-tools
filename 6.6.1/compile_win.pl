@@ -36,9 +36,9 @@ printLineToBat ("SET PATH=%_ROOT%\\qtbase\\bin;%_ROOT%\\gnuwin32\\bin;%PATH%"); 
 printLineToBat ("SET OPENSSL_LIBS=-lUser32 -lAdvapi32 -lGdi32 -llibcrypto -llibssl");
 
 printLineToBat ("cd _tools");
-printLineToBat ("7z x cmake.7z -aoa");
+printLineToBat ("7z x cmake.7z -aoa -y");
 
-printLineToBat ("7z x $openssl_7z -o$openssl_dir") if (-e "_tools\\$openssl_7z");
+printLineToBat ("7z x $openssl_7z -o$openssl_dir -y") if (-e "_tools\\$openssl_7z");
 printLineToBat ("cd ..");
 
 printLineToBat ("IF EXIST qt6-build GOTO SECOND_STEP");
@@ -52,7 +52,7 @@ printLineToBat ("if \"%~1\"==\"step2\" goto step2");
 printLineToBat ("IF EXIST $openssl_dir\\build GOTO OPENSSL_ALREAD_COMPILED");
 printLineToBat ("wget --no-check-certificate $openssl_download");
 printLineToBat ("7z x openssl-$openssl_version.tar.gz");
-printLineToBat ("7z x openssl-$openssl_version.tar -o$openssl_dir");
+printLineToBat ("7z x openssl-$openssl_version.tar -o$openssl_dir -y");
 printLineToBat ("mv $openssl_dir\\openssl-$openssl_version\\* $openssl_dir");
 printLineToBat ("rmdir $openssl_dir\\openssl-$openssl_version"); # empty now
 printLineToBat ("rm openssl-$openssl_version.tar.gz");
