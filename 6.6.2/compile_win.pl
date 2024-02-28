@@ -12,14 +12,14 @@ $current_dir =~ s#/#\\#g; # convert separators to Windows-style
 $prefix_dir =~ s#/#\\#g; # convert separators to Windows-style
 
 my $arch = $ARGV[0];
+$arch = "amd64" if ($arch eq ''); # amd64 is nothing is specified, can be x86
+die "Please specify architecture (x86 or amd64)" if ($arch ne "x86" && $arch ne "amd64"); # die if user specified anything except x86 or amd64
+
 my $openssl_version = "3.0.13"; # supported until 7th September 2026
 my $openssl_download = "https://www.openssl.org/source/openssl-$openssl_version.tar.gz";
 my $openssl_arch = $arch eq "amd64" ? "WIN64A" : "WIN32";
 my $openssl_dir = "$current_dir\\openssl-$openssl_version-$openssl_arch";
 my $openssl_7z = "openssl-$openssl_version-$openssl_arch.7z";
-
-$arch = "x86" if ($arch eq ''); # specify x86 is nothing is specified
-die "Please specify architecture (x86 or amd64)" if ($arch ne "x86" && $arch ne "amd64"); # die if user specified anything except x86 or amd64
 
 # will create a batch file
 
