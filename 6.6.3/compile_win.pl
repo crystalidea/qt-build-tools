@@ -12,8 +12,13 @@ $current_dir =~ s#/#\\#g; # convert separators to Windows-style
 $prefix_dir =~ s#/#\\#g; # convert separators to Windows-style
 
 my $arch = $ARGV[0];
+my $install_dir = $ARGV[1];
+
 $arch = "amd64" if ($arch eq ''); # amd64 is nothing is specified, can be x86
-die "Please specify architecture (x86 or amd64)" if ($arch ne "x86" && $arch ne "amd64"); # die if user specified anything except x86 or amd64
+die "Error: Please specify architecture (x86 or amd64)" if ($arch ne "x86" && $arch ne "amd64"); # die if user specified anything except x86 or amd64
+die "Error: Please specify install dir as second parameter" if (!$install_dir);
+
+die "Error: istall dir $install_dir already exists" if (-d $install_dir);
 
 my $openssl_version = "3.0.13"; # supported until 7th September 2026
 my $openssl_download = "https://www.openssl.org/source/openssl-$openssl_version.tar.gz";
@@ -79,7 +84,7 @@ foreach (split(/\s/, $skipped_modules)) {
     $skipped_modules_cmd .= "-skip $_ ";
 }
 
-printLineToBat ("..\\configure -prefix C:\\qt6 -opensource -debug-and-release -confirm-license -opengl desktop -nomake tests -nomake examples $skipped_modules_cmd -openssl-linked -- -DOPENSSL_ROOT_DIR=\"$openssl_dir\\build\" -DOPENSSL_INCLUDE_DIR=\"$openssl_dir\\build\\include\" -DOPENSSL_USE_STATIC_LIBS=ON");
+printLineToBat ("..\\configure -prefix $install_dir -opensource -debug-and-release -confirm-license -opengl desktop -nomake tests -nomake examples $skipped_modules_cmd -openssl-linked -- -DOPENSSL_ROOT_DIR=\"$openssl_dir\\build\" -DOPENSSL_INCLUDE_DIR=\"$openssl_dir\\build\\include\" -DOPENSSL_USE_STATIC_LIBS=ON");
 
 printLineToBat ("goto :EOF");
 
