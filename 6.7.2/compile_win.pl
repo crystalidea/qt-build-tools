@@ -13,12 +13,14 @@ $prefix_dir =~ s#/#\\#g; # convert separators to Windows-style
 
 my $arch = $ARGV[0];
 my $install_dir = $ARGV[1];
+my $build_dir = "qt6-build";
 
 $arch = "amd64" if ($arch eq ''); # amd64 is nothing is specified, can be x86
 die "Error: Please specify architecture (x86 or amd64)" if ($arch ne "x86" && $arch ne "amd64"); # die if user specified anything except x86 or amd64
 die "Error: Please specify install dir as second parameter" if (!$install_dir);
 
-die "Error: istall dir $install_dir already exists" if (-d $install_dir);
+die "Error: istall dir '$install_dir' already exists" if (-d $install_dir);
+die "Error: build dir '$build_dir' already exists" if (-d $build_dir);
 
 my $openssl_version = "3.0.13"; # supported until 7th September 2026
 my $openssl_download = "https://www.openssl.org/source/openssl-$openssl_version.tar.gz";
@@ -44,10 +46,10 @@ printLineToBat ("7z x cmake.7z -aoa -y");
 printLineToBat ("7z x $openssl_7z -o$openssl_dir -y") if (-e "_tools\\$openssl_7z");
 printLineToBat ("cd ..");
 
-printLineToBat ("IF EXIST qt6-build GOTO SECOND_STEP");
-printLineToBat ("mkdir qt6-build");
+printLineToBat ("IF EXIST $build_dir GOTO SECOND_STEP");
+printLineToBat ("mkdir $build_dir");
 printLineToBat (":SECOND_STEP");
-printLineToBat ("cd qt6-build");
+printLineToBat ("cd $build_dir");
 
 printLineToBat ("if \"%~1\"==\"step2\" goto step2");
 
@@ -92,12 +94,18 @@ printLineToBat ("goto :EOF");
 printLineToBat (":step2");
 
 printLineToBat ("cmake --build . --parallel");
+
+printLineToBat ("IF ERRORLEVEL 1 (");
+printLineToBat ("echo Build failed with error %ERRORLEVEL%.");
+printLineToBat ("EXIT /B %ERRORLEVEL%");
+printLineToBat (")");
+
 printLineToBat ("cmake --install . --config Release");
 printLineToBat ("cmake --install . --config Debug");
 
 # clean up
 printLineToBat ("cd .."); # since we're now in 'qt6-build' for some reason
-printLineToBat ("rmdir qt6-build /s /q");
+printLineToBat ("rmdir $build_dir /s /q");
 
 close BAT;
 
