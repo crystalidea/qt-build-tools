@@ -31,4 +31,4 @@ On Windows you need [VS2022 Community Edition](https://visualstudio.microsoft.co
 
 ### Qt 6
 
-We currently have a build script only for Windows (VS2019).
+We currently have a build script only for Windows (VS2022).
