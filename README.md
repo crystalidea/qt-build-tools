@@ -27,7 +27,7 @@ QMAKE_LFLAGS += "-stdlib=libc++"
 
 ### Windows
 
-On Windows you need [VS2019 Community Edition](https://visualstudio.microsoft.com/downloads/) and [Perl](https://strawberryperl.com/). QtNetwork module is compiled using openssl-3.0.13 which is pre-compiled but once you delete the folder, it will be compiled again.
+On Windows you need [VS2022 Community Edition](https://visualstudio.microsoft.com/downloads/) and [Perl](https://strawberryperl.com/). QtNetwork module is compiled using openssl-3.0.13 which is pre-compiled but once you delete the folder, it will be compiled again.
 
 ### Qt 6
 
