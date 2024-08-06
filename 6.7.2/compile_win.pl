@@ -35,7 +35,7 @@ my $batfile = 'compile_win.bat';
 open BAT, '>', $batfile;
 
 printLineToBat ("SET PATH=%PATH%;%cd%\\_tools;%cd%\\_tools\\cmake\\bin"); # add folders to the path for 7z, wget, cmake, etc
-printLineToBat ("CALL \"C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Auxiliary\\Build\\vcvarsall.bat\" $arch");
+printLineToBat ("CALL \"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\Build\\vcvarsall.bat\" $arch");
 printLineToBat ("SET _ROOT=%cd%");
 printLineToBat ("SET PATH=%_ROOT%\\qtbase\\bin;%_ROOT%\\gnuwin32\\bin;%PATH%"); # http://doc.qt.io/qt-5/windows-building.html
 printLineToBat ("SET OPENSSL_LIBS=-lUser32 -lAdvapi32 -lGdi32 -llibcrypto -llibssl");
