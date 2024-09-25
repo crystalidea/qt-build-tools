@@ -1,0 +1,1 @@
+perl compile_win.pl amd64 C:\qt6_x64 --vcpkg_dir=G:\Projects\vcpkg --build-multimedia

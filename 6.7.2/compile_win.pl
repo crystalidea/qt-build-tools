@@ -1,7 +1,11 @@
+# from https://wiki.qt.io/Building_Qt_Multimedia_with_FFmpeg
+# vcpkg install ffmpeg[core,swresample,swscale,avdevice]:x64-windows
+
 use strict;
 use Cwd;
 use Path::Tiny;
 use IPC::Cmd qw[can_run run];
+use Getopt::Long;
 
 # check requirements:
 die "Cannot proceed without the '_tools' folder'" if (!-e "_tools");
@@ -13,14 +17,33 @@ $prefix_dir =~ s#/#\\#g; # convert separators to Windows-style
 
 my $arch = $ARGV[0];
 my $install_dir = $ARGV[1];
-my $build_dir = "qt6-build";
+my $vcpkg_dir;
+my $build_multimedia = 0;
+
+GetOptions(
+    'vcpkg-dir=s'    => \$vcpkg_dir,
+    'build-multimedia'   => \$build_multimedia,
+) or die "Error in command line arguments\n";
 
 $arch = "amd64" if ($arch eq ''); # amd64 is nothing is specified, can be x86
+
 die "Error: Please specify architecture (x86 or amd64)" if ($arch ne "x86" && $arch ne "amd64"); # die if user specified anything except x86 or amd64
 die "Error: Please specify install dir as second parameter" if (!$install_dir);
-
 die "Error: istall dir '$install_dir' already exists" if (-d $install_dir);
+
+my $build_dir = "_qt6-build-$arch";
+
 die "Error: build dir '$build_dir' already exists" if (-d $build_dir);
+
+if (defined $vcpkg_dir)
+{
+    $vcpkg_dir .= "\\installed\\x64-windows" if ($arch eq 'amd64');
+    $vcpkg_dir .= "\\installed\\x86-windows" if ($arch eq 'x86');
+
+    die "vcpkg dir $vcpkg_dir doesn't exist" if (!-e "$vcpkg_dir");
+}
+
+die "vcpkg_dir dir is required to build multimedia" if ($build_multimedia && !defined $vcpkg_dir);
 
 my $openssl_version = "3.0.13"; # supported until 7th September 2026
 my $openssl_download = "https://www.openssl.org/source/openssl-$openssl_version.tar.gz";
@@ -78,7 +101,8 @@ printLineToBat (":OPENSSL_ALREAD_COMPILED");
 
 # openssl: see https://bugreports.qt.io/browse/QTBUG-65501
 
-my $skipped_modules = "qt3d qtactiveqt qtcharts qtcoap qtconnectivity qtdatavis3d qtdoc qtlottie qtmqtt qtmultimedia qtnetworkauth qtopcua qtpositioning qtquick3d qtquicktimeline qtremoteobjects qtscxml qtsensors qtserialbus qtserialport qtsvg qttranslations qtvirtualkeyboard qtwayland qtwebchannel qtwebengine qtwebsockets qtwebview";
+my $skipped_modules = "qtlocation qtspeech qt3d qtactiveqt qtcharts qtcoap qtconnectivity qtdatavis3d qtdoc qtlottie qtmqtt qtnetworkauth qtopcua qtpositioning qtquicktimeline qtremoteobjects qtscxml qtsensors qtserialbus qtserialport qtsvg qttranslations qtvirtualkeyboard qtwayland qtwebchannel qtwebengine qtwebsockets qtwebview";
+$skipped_modules.=' qtmultimedia' if (!$build_multimedia);
 
 my $skipped_modules_cmd;
 
@@ -86,7 +110,10 @@ foreach (split(/\s/, $skipped_modules)) {
     $skipped_modules_cmd .= "-skip $_ ";
 }
 
-printLineToBat ("..\\configure -prefix $install_dir -opensource -debug-and-release -confirm-license -opengl desktop -nomake tests -nomake examples $skipped_modules_cmd -openssl-linked -- -DOPENSSL_ROOT_DIR=\"$openssl_dir\\build\" -DOPENSSL_INCLUDE_DIR=\"$openssl_dir\\build\\include\" -DOPENSSL_USE_STATIC_LIBS=ON");
+my $configure_cmd = "..\\configure -prefix $install_dir -opensource -debug-and-release -confirm-license -opengl desktop -nomake tests -nomake examples $skipped_modules_cmd -openssl-linked -- -DOPENSSL_ROOT_DIR=\"$openssl_dir\\build\" -DOPENSSL_INCLUDE_DIR=\"$openssl_dir\\build\\include\" -DOPENSSL_USE_STATIC_LIBS=ON";
+$configure_cmd .= " -DFFMPEG_DIR=$vcpkg_dir" if ($build_multimedia);
+
+printLineToBat ($configure_cmd);
 
 printLineToBat ("goto :EOF");
 
