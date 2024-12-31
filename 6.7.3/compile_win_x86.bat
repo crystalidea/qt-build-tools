@@ -1,1 +1,0 @@
-perl compile_win.pl x86 C:\qt6

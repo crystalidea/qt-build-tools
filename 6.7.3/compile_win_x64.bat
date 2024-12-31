@@ -1,1 +1,0 @@
-perl compile_win.pl amd64 C:\qt6_x64
