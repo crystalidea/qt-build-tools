@@ -33,6 +33,20 @@ sub run_command {
     }
 }
 
+# Subroutine to run a command with optional elevation
+sub run_command_with_sudo {
+    my ($cmd) = @_;
+    print "Running: $cmd\n";
+    open(my $pipe, '-|', "sudo $cmd 2>&1") or die "Error: Unable to execute '$cmd' with sudo.\n";
+    while (my $line = <$pipe>) {
+        print $line;
+    }
+    close($pipe);
+    if ($? != 0) {
+        die "Error: Command '$cmd' with sudo failed.\n";
+    }
+}
+
 # Check for ninja
 if (!command_exists('ninja')) {
     die "Error: 'ninja' is not installed or not in the PATH. You can use 'brew install ninja' command\n";
@@ -63,8 +77,8 @@ run_command("../configure $skip_modules_string -- -DCMAKE_OSX_ARCHITECTURES=\"x8
 print "Building Qt6...\n";
 run_command("cmake --build . --parallel");
 
-# Install Qt6
-print "Installing Qt6...\n";
-run_command("cmake --install .");
+# Install Qt6 with sudo
+print "Installing Qt6 with elevated privileges...\n";
+run_command_with_sudo("cmake --install .");
 
 print "Qt6 has been successfully built and installed.\n";
