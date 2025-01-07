@@ -92,8 +92,4 @@ run_command("cmake --build . --parallel");
 print "Installing Qt6 with elevated privileges...\n";
 run_command_with_sudo("cmake --install .");
 
-# for some reason Qt Creator (15.0.0) expects uic tool in cd /usr/local/Qt-6.x.x
-run_command("cd $install_dir");
-run_command_with_sudo("ln -s ../libexec/uic bin/uic");
-
 print "Qt6 has been successfully built and installed.\n";
