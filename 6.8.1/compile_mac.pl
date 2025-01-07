@@ -9,7 +9,7 @@ my @skipped_modules = qw(
     qtpositioning qtremoteobjects qtscxml qtsensors qtserialbus qtserialport
     qtsvg qttranslations qtvirtualkeyboard qtwayland qtwebchannel qtwebengine
     qtwebsockets qtwebview qtquickeffectmaker qtquicktimeline qtquick3d
-    qtquick3dphysics qtgraphs
+    qtquick3dphysics qtgraphs qtmultimedia qtdeclarative qtlanguageserver qtshadertools qttools
 );
 
 # Subroutine to check if a command exists in PATH
@@ -58,9 +58,14 @@ if (!command_exists('cmake')) {
 }
 
 my $build_dir = "qt6-build";
+my $install_dir = "/usr/local/Qt-6.8.1";
 
 if (-d $build_dir) {
     die "Error: $build_dir already exists from the previous build\n";
+}
+
+if (-d $install_dir) {
+    die "Error: $install_dir already exists from the previous build\n";
 }
 
 mkdir $build_dir or die "Error: Unable to create directory '$build_dir'.\n";
@@ -71,7 +76,13 @@ my $skip_modules_string = join(' ', map { "-skip $_" } @skipped_modules);
 
 # Configure the build
 print "Configuring the build...\n";
-run_command("../configure $skip_modules_string -- -DCMAKE_OSX_ARCHITECTURES=\"x86_64;arm64\"");
+
+my $build_archs = "-DCMAKE_OSX_ARCHITECTURES=\"x86_64;arm64\""; 
+# NOTE: if $build_archs is empty, Qt is defaults to x86_64 on an arm64 machine, which is not what described in the docs:
+# https://doc.qt.io/qt-6/macos-building.html
+my $build_etc = "-DBUILD_TESTING=OFF";
+
+run_command("../configure $skip_modules_string -no-framework -- $build_archs $build_etc");
 
 # Build Qt6
 print "Building Qt6...\n";
@@ -80,5 +91,9 @@ run_command("cmake --build . --parallel");
 # Install Qt6 with sudo
 print "Installing Qt6 with elevated privileges...\n";
 run_command_with_sudo("cmake --install .");
+
+# for some reason Qt Creator (15.0.0) expects uic tool in cd /usr/local/Qt-6.x.x
+run_command("cd $install_dir");
+run_command_with_sudo("ln -s ../libexec/uic bin/uic");
 
 print "Qt6 has been successfully built and installed.\n";
