@@ -1,6 +1,10 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
+use Time::HiRes qw(gettimeofday tv_interval);
+
+# Start time
+my $start_time = [gettimeofday];
 
 # Define the modules to skip
 my @skipped_modules = qw(
@@ -87,6 +91,15 @@ run_command("../configure $skip_modules_string -no-framework -- $build_archs $bu
 # Build Qt6
 print "Building Qt6...\n";
 run_command("cmake --build . --parallel");
+
+# End time
+my $end_time = [gettimeofday];
+my $elapsed = tv_interval($start_time, $end_time);
+# Convert elapsed time to mm:ss format
+my $minutes = int($elapsed / 60);
+my $seconds = $elapsed % 60;
+# Format the output
+printf("Compilation time: %02d:%02d\n", $minutes, $seconds);
 
 # Install Qt6 with sudo
 print "Installing Qt6 with elevated privileges...\n";
