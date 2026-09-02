@@ -62,7 +62,12 @@ if (!command_exists('cmake')) {
 }
 
 my $build_dir = "qt6-build";
-my $install_dir = "/usr/local/Qt-6.8.1";
+
+# configure's default prefix is /usr/local/Qt-<version>, so this must match the
+# version of the source tree the script is run from - it is what the "already
+# installed?" guard below actually checks.
+my $qt_version  = "6.8.4";
+my $install_dir = "/usr/local/Qt-$qt_version";
 
 if (-d $build_dir) {
     die "Error: $build_dir already exists from the previous build\n";
