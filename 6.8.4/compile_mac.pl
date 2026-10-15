@@ -81,6 +81,28 @@ sub dir_is_empty {
     return !@entries;
 }
 
+# Replace $from with $to in $file. A file that already has $to is left alone, so
+# re-running the script on the same source tree is fine; anything else means the
+# sources are not the ones the patch was written for.
+sub patch_source {
+    my ($file, $from, $to) = @_;
+    open(my $in, '<', $file) or die "Error: Unable to read '$file'.\n";
+    my $text = do { local $/; <$in> };
+    close($in);
+
+    my $at = index($text, $from);
+    if ($at < 0) {
+        return if (index($text, $to) >= 0);
+        die "Error: '$file' is not what the patch expects, check the patch in compile_mac.pl\n";
+    }
+    substr($text, $at, length($from)) = $to;
+
+    open(my $out, '>', $file) or die "Error: Unable to write '$file'.\n";
+    print $out $text;
+    close($out);
+    print "Patched $file\n";
+}
+
 die "Error: run this script from the Qt source root (no 'configure' / 'qtbase' here)\n"
     if (!-e "configure" || !-d "qtbase");
 
@@ -101,6 +123,53 @@ if ($build_pdf) {
     }
     system("python3 -c 'import html5lib' 2>/dev/null") == 0
         or die "Error: --build-pdf needs html5lib: python3 -m pip install --user html5lib\n";
+
+    # Chromium 122 (QtPdf) predates the macOS 15.4+ SDKs, whose system headers
+    # define TARGET_OS_MAC everywhere, so two classic Mac OS branches now fire by
+    # mistake: zlib turns fdopen into NULL, which breaks the SDK's own fdopen
+    # declaration, and libpng includes the long gone <fp.h>. Apply what upstream
+    # did - qtbase already ships the fixed zlib 1.3.1 and libpng 1.6.49.
+    my $chromium = "qtwebengine/src/3rdparty/chromium/third_party";
+
+    patch_source("$chromium/zlib/zutil.h", <<'FROM', <<'TO');
+#if defined(MACOS) || defined(TARGET_OS_MAC)
+#  define OS_CODE  7
+#  ifndef Z_SOLO
+#    if defined(__MWERKS__) && __dest_os != __be_os && __dest_os != __win32_os
+#      include <unix.h> /* for fdopen */
+#    else
+#      ifndef fdopen
+#        define fdopen(fd,mode) NULL /* No fdopen() */
+#      endif
+#    endif
+#  endif
+#endif
+FROM
+#if defined(MACOS)
+#  define OS_CODE  7
+#endif
+TO
+
+    patch_source("$chromium/libpng/pngpriv.h", <<'FROM', <<'TO');
+#  include <float.h>
+
+#  if (defined(__MWERKS__) && defined(macintosh)) || defined(applec) || \
+    defined(THINK_C) || defined(__SC__) || defined(TARGET_OS_MAC)
+   /* We need to check that <math.h> hasn't already been included earlier
+    * as it seems it doesn't agree with <fp.h>, yet we should really use
+    * <fp.h> if possible.
+    */
+#    if !defined(__MATH_H__) && !defined(__MATH_H) && !defined(__cmath__)
+#      include <fp.h>
+#    endif
+#  else
+#    include <math.h>
+#  endif
+FROM
+#  include <float.h>
+
+#  include <math.h>
+TO
 }
 
 if ($build_multimedia) {
