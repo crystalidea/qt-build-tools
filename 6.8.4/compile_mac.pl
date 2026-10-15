@@ -9,8 +9,11 @@
 #
 # FFmpeg for --build-multimedia comes from --ffmpeg-dir: a prefix with include/ and
 # lib/ holding universal dylibs with @rpath install names - the 3rdParty
-# _build/qt6-8/ffmpeg-qt prefix built by 3rdParty/_mac/ffmpeg.sh. Like on Windows,
-# the dylibs are not copied into Qt: the app deploys them itself.
+# _build/qt6-8/ffmpeg-qt prefix built by 3rdParty/_mac/ffmpeg.sh. The dylibs are
+# installed into Qt's lib/ (QT_DEPLOY_FFMPEG): Qt 6.8 on macOS defaults to the
+# ffmpeg backend and does not fall back to darwin when FFmpeg cannot be loaded,
+# so without them QtMultimedia has no backend at all. From lib/ the plugin finds
+# them and macdeployqt copies them into the app bundle.
 #
 # --build-pdf builds QtPdf out of qtwebengine after Qt itself is installed, the same
 # way compile_win.pl does. It needs node.js, python3 with html5lib, gperf, bison
@@ -236,7 +239,7 @@ chdir $build_dir or die "Error: Unable to change directory to '$build_dir'.\n";
 my $skip_modules_string = join(' ', map { "-skip $_" } @skipped_modules);
 
 my $configure_cmd = "../configure -prefix \"$install_dir\" $skip_modules_string -no-framework -no-openssl -- @cmake_args";
-$configure_cmd .= " -DFFMPEG_DIR=\"$ffmpeg_dir\"" if ($build_multimedia);
+$configure_cmd .= " -DFFMPEG_DIR=\"$ffmpeg_dir\" -DQT_DEPLOY_FFMPEG=TRUE" if ($build_multimedia);
 
 # Configure the build
 print "Configuring the build...\n";
