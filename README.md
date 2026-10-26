@@ -1,34 +1,23 @@
 # Qt build tools and patches
 
-This is a set of build tools and required patches to build Qt yourself and distribute it along with your app on macOS and Windows.
+Build scripts and patches we use to build Qt 6.8.5 ourselves and ship it with our apps on macOS and Windows. AnyToISO 4.0 and Macs Fan Control 1.5.23 use only this Qt version.
+
+Copy the contents of this repository into the official Qt source tree (`qt-everywhere-src-6.8.5`, overwriting existing files) and run the script from there.
 
 ### macOS
 
-For macOS we currently distribute two binaries:
+Needs [Xcode](https://apps.apple.com/us/app/xcode/id497799835?mt=12). Qt is built universal (x86_64 + arm64) and installed into `/usr/local/Qt-6.8.5` unless another directory is given. The fixes the sources need on current macOS and Xcode are kept in `patches`, each with its reason and upstream origin in its header, and are applied by the script:
 
-- Modern, compiled with [Qt 5.15.17](5.15.17) for macOS 10.13+. The folder contains several macOS-related patches. It can be compiled on any modern macOS version using any XCode version (including version 26 of both).
-
-- Legacy, compiled with [Qt 5.6.3](5.6.3) for macOS 10.7-10.12. The folder contains several macOS-related patches ([QTBUG-40583](https://bugreports.qt.io/browse/QTBUG-40583), [QTBUG-18624](https://bugreports.qt.io/browse/QTBUG-18624), [QTBUG-52536](https://bugreports.qt.io/browse/QTBUG-52536), [QTBUG-63451](https://bugreports.qt.io/browse/QTBUG-63451) ) already applied in order to be compiled and used normally. To compile Qt 5.6.3 we use macOS 10.13 and XCode 8.
-
-To apply patches and compile Qt the same as we do, simply copy the contents of the folder ([Qt 5.15.16](5.15.16) or [Qt 5.6.3](5.6.3)) to the official Qt source tree (overwriting existing files of cause).
-
-Compiling your app with both modern and legacy Qt can be done on modern macOS with [XCode](https://apps.apple.com/us/app/xcode/id497799835?mt=12).
-
-When compiling a project with Qt 5.6.3 on arm64 host machine some additional steps are required in your .pro file:
-
-```bash
-# compiler flags:
-QMAKE_CXXFLAGS += "-arch x86_64"
-QMAKE_CFLAGS += "-arch x86_64"
-QMAKE_LFLAGS += "-arch x86_64"
-# linker flags, required to support 10.7, otherwise minimum deployment target is 10.9
-QMAKE_LFLAGS += "-stdlib=libc++"
+```sh
+perl compile_mac.pl [install_dir] [--build-multimedia --ffmpeg-dir=DIR] [--build-pdf] [--build-graphs]
 ```
 
 ### Windows
 
-On Windows you need [VS2022 Community Edition](https://visualstudio.microsoft.com/downloads/) and [Perl](https://strawberryperl.com/). QtNetwork module is compiled using openssl-3.0.13 which is pre-compiled but once you delete the folder, it will be compiled again.
+Needs [VS2022 Community Edition](https://visualstudio.microsoft.com/downloads/) and [Perl](https://strawberryperl.com/). Run one of the `compile_win_*.bat` wrappers or the script itself:
 
-### Qt 6
+```sh
+perl compile_win.pl amd64|x86 install_dir [--build-multimedia --ffmpeg-dir=DIR] [--build-pdf|--build-webengine] [--build-graphs]
+```
 
-We currently have a build script only for Windows (VS2022).
+QtNetwork is linked against openssl-3.0.13, pre-compiled in `_tools`; delete the extracted `openssl-*` folder and it will be compiled again.
