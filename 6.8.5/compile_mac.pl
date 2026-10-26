@@ -1,28 +1,34 @@
 #!/usr/bin/perl
 # macOS counterpart of compile_win.pl. Copy this folder into the Qt source root
-# (qt-everywhere-src-6.8.4) and run it from there:
+# (qt-everywhere-src-6.8.5) and run it from there:
 #
 #   perl compile_mac.pl [install_dir] [--build-pdf] [--build-multimedia --ffmpeg-dir=DIR] [--build-graphs]
 #
 # install_dir defaults to /usr/local/Qt-<version>. Qt is built universal
 # (x86_64 + arm64) against the SDK of the selected Xcode.
 #
+# The fixes the Qt sources need for that are kept as patches/*.patch next to this
+# script, each with its reason and upstream origin; the script applies them to the
+# source tree before configuring.
+#
 # FFmpeg for --build-multimedia comes from --ffmpeg-dir: a prefix with include/ and
 # lib/ holding universal dylibs with @rpath install names - the 3rdParty
-# _build/qt6-8/ffmpeg-qt prefix built by 3rdParty/_mac/ffmpeg.sh. The dylibs are
+# _build/ffmpeg-qt prefix built by 3rdParty/_mac/ffmpeg.sh. The dylibs are
 # installed into Qt's lib/ (QT_DEPLOY_FFMPEG): Qt 6.8 on macOS defaults to the
 # ffmpeg backend and does not fall back to darwin when FFmpeg cannot be loaded,
 # so without them QtMultimedia has no backend at all. From lib/ the plugin finds
 # them and macdeployqt copies them into the app bundle.
 #
 # --build-pdf builds QtPdf out of qtwebengine after Qt itself is installed, the same
-# way compile_win.pl does. It needs node.js, python3 with html5lib, gperf, bison
-# and flex.
+# way compile_win.pl does. Besides ninja it only needs Python 3.8+ (node.js,
+# html5lib, gperf, bison and flex are QtWebEngine-only as of 6.8.5), and the
+# python3 of the selected Xcode is used for it.
 use strict;
 use warnings;
 use Cwd;
 use File::Basename;
 use File::Path qw(remove_tree);
+use FindBin;
 use Getopt::Long;
 use Time::HiRes qw(gettimeofday tv_interval);
 
@@ -84,26 +90,29 @@ sub dir_is_empty {
     return !@entries;
 }
 
-# Replace $from with $to in $file. A file that already has $to is left alone, so
-# re-running the script on the same source tree is fine; anything else means the
-# sources are not the ones the patch was written for.
-sub patch_source {
-    my ($file, $from, $to) = @_;
-    open(my $in, '<', $file) or die "Error: Unable to read '$file'.\n";
-    my $text = do { local $/; <$in> };
-    close($in);
+# Apply every *.patch in $dir to the Qt sources (diffs against the source root,
+# patch -p1). A patch that is already in the tree is skipped, so the script can be
+# re-run on the same sources; one that applies neither way means the sources are
+# not the ones it was written for, and then none is applied.
+sub apply_patches {
+    my ($dir) = @_;
+    opendir(my $dh, $dir) or die "Error: no '$dir' - copy the whole folder of this script into the Qt source root\n";
+    my @patches = sort grep { /\.patch$/ } readdir($dh);
+    closedir($dh);
 
-    my $at = index($text, $from);
-    if ($at < 0) {
-        return if (index($text, $to) >= 0);
-        die "Error: '$file' is not what the patch expects, check the patch in compile_mac.pl\n";
+    # -f: never ask, and never take a patch for a reversed one on its own
+    my @to_apply;
+    foreach my $name (@patches) {
+        my $patch = "$dir/$name";
+        if (system("patch -p1 -R -f -s --dry-run < \"$patch\" > /dev/null 2>&1") == 0) {
+            print "Patch $name is already applied\n";
+        } elsif (system("patch -p1 -f -s --dry-run < \"$patch\" > /dev/null 2>&1") == 0) {
+            push @to_apply, $patch;
+        } else {
+            die "Error: $name does not apply to this source tree\n";
+        }
     }
-    substr($text, $at, length($from)) = $to;
-
-    open(my $out, '>', $file) or die "Error: Unable to write '$file'.\n";
-    print $out $text;
-    close($out);
-    print "Patched $file\n";
+    run_command("patch -p1 -f < \"$_\"") foreach (@to_apply);
 }
 
 die "Error: run this script from the Qt source root (no 'configure' / 'qtbase' here)\n"
@@ -119,60 +128,15 @@ if (!command_exists('cmake')) {
     die "Error: 'cmake' is not installed or not in the PATH. You can use 'brew install cmake' command\n";
 }
 
-# QtPdf (Chromium) requirements - check them now rather than an hour into the build
+# QtPdf runs Chromium's build scripts on the python3 of the selected Xcode, the
+# same way the SDK is taken from it. Left alone, qtwebengine's configure would
+# take the first python3 in the PATH - with Homebrew that is whatever Python it
+# last pulled in, not the one the QtPdf build was verified with.
+my $python;
 if ($build_pdf) {
-    foreach my $tool (qw(node python3 gperf bison flex)) {
-        die "Error: '$tool' is required for --build-pdf but is not in the PATH\n" if (!command_exists($tool));
-    }
-    system("python3 -c 'import html5lib' 2>/dev/null") == 0
-        or die "Error: --build-pdf needs html5lib: python3 -m pip install --user html5lib\n";
-
-    # Chromium 122 (QtPdf) predates the macOS 15.4+ SDKs, whose system headers
-    # define TARGET_OS_MAC everywhere, so two classic Mac OS branches now fire by
-    # mistake: zlib turns fdopen into NULL, which breaks the SDK's own fdopen
-    # declaration, and libpng includes the long gone <fp.h>. Apply what upstream
-    # did - qtbase already ships the fixed zlib 1.3.1 and libpng 1.6.49.
-    my $chromium = "qtwebengine/src/3rdparty/chromium/third_party";
-
-    patch_source("$chromium/zlib/zutil.h", <<'FROM', <<'TO');
-#if defined(MACOS) || defined(TARGET_OS_MAC)
-#  define OS_CODE  7
-#  ifndef Z_SOLO
-#    if defined(__MWERKS__) && __dest_os != __be_os && __dest_os != __win32_os
-#      include <unix.h> /* for fdopen */
-#    else
-#      ifndef fdopen
-#        define fdopen(fd,mode) NULL /* No fdopen() */
-#      endif
-#    endif
-#  endif
-#endif
-FROM
-#if defined(MACOS)
-#  define OS_CODE  7
-#endif
-TO
-
-    patch_source("$chromium/libpng/pngpriv.h", <<'FROM', <<'TO');
-#  include <float.h>
-
-#  if (defined(__MWERKS__) && defined(macintosh)) || defined(applec) || \
-    defined(THINK_C) || defined(__SC__) || defined(TARGET_OS_MAC)
-   /* We need to check that <math.h> hasn't already been included earlier
-    * as it seems it doesn't agree with <fp.h>, yet we should really use
-    * <fp.h> if possible.
-    */
-#    if !defined(__MATH_H__) && !defined(__MATH_H) && !defined(__cmath__)
-#      include <fp.h>
-#    endif
-#  else
-#    include <math.h>
-#  endif
-FROM
-#  include <float.h>
-
-#  include <math.h>
-TO
+    $python = `xcrun --find python3 2>/dev/null`;
+    chomp $python;
+    die "Error: cannot locate the python3 of the selected Xcode (xcrun --find python3)\n" if (!-x $python);
 }
 
 if ($build_multimedia) {
@@ -187,7 +151,7 @@ my $pdf_build_dir = "qtwebengine-pdf-build";
 
 # configure's default prefix is /usr/local/Qt-<version>, so this must match the
 # version of the source tree the script is run from.
-my $qt_version  = "6.8.4";
+my $qt_version  = "6.8.5";
 my $install_dir = $ARGV[0] // "/usr/local/Qt-$qt_version";
 
 foreach my $dir ($build_dir, $pdf_build_dir) {
@@ -204,6 +168,10 @@ if (-d $install_dir && !dir_is_empty($install_dir)) {
 my $sdk_path = `xcrun --sdk macosx --show-sdk-path`;
 chomp $sdk_path;
 die "Error: cannot locate the macOS SDK (xcrun --sdk macosx --show-sdk-path)\n" if (!-d $sdk_path);
+
+# The fixes the Qt sources need on current macOS / Xcode, see patches/*.patch.
+# Applied after all the checks above, so that a failed check leaves the tree alone.
+apply_patches("$FindBin::Bin/patches");
 
 # One sudo prompt up front instead of one at the end of a multi-hour build: create
 # the install dir and hand it to the current user, so that every 'cmake --install'
@@ -269,7 +237,7 @@ if ($build_pdf) {
     mkdir $pdf_build_dir or die "Error: Unable to create directory '$pdf_build_dir'.\n";
     chdir $pdf_build_dir or die "Error: Unable to change directory to '$pdf_build_dir'.\n";
 
-    run_command("\"$install_dir/bin/qt-configure-module\" ../qtwebengine -- -DFEATURE_qtwebengine_build=OFF @cmake_args");
+    run_command("\"$install_dir/bin/qt-configure-module\" ../qtwebengine -- -DFEATURE_qtwebengine_build=OFF -DPython3_EXECUTABLE=\"$python\" @cmake_args");
     run_command("cmake --build . --parallel");
     run_command("cmake --install .");
 
