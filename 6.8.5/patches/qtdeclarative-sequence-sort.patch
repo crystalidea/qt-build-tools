@@ -1,0 +1,45 @@
+QtQml: sort Sequences without subscripting their iterators
+
+std::sort in the libc++ of the macOS 27 SDK (Xcode 27) accesses random
+access iterators through operator[] (std::__sift_down), and
+QSequentialIterable::RandomAccessIterator, a QTaggedIterator, has none:
+
+  sift_down.h: error: type 'QTaggedIterator<QTaggedIterator<
+  QSequentialIterator, void>, std::random_access_iterator_tag>' does not
+  provide a subscript operator
+
+QTaggedIterator cannot just grow an operator[]: the QVariantRef it hands
+out points at the iterator itself, so one returned for a temporary
+iterator would dangle. Sort a copy of the elements instead and write the
+result back. The comparison and the result are the same as before.
+
+Upstream has no fix for 6.8: qtdeclarative 6537b2b23b ("Rework the sort
+implementation for Sequences", QTBUG-125400, Qt 6.9) removed this code
+along with the special Sequence sort - a behavior change, so it is not
+backported here.
+
+--- a/qtdeclarative/src/qml/jsruntime/qv4sequenceobject.cpp
++++ b/qtdeclarative/src/qml/jsruntime/qv4sequenceobject.cpp
+@@ -102,9 +102,19 @@
+ 
+     QSequentialIterable iterable(p->metaSequence(), p->listType(), p->storagePointer());
+     if (iterable.canRandomAccessIterate()) {
+-        std::sort(QSequentialIterable::RandomAccessIterator(iterable.mutableBegin()),
+-                  QSequentialIterable::RandomAccessIterator(iterable.mutableEnd()),
+-                  compare);
++        // std::sort may subscript its iterators (the libc++ of the macOS 27 SDK
++        // does), and QSequentialIterable's have no operator[]: sort a copy of the
++        // elements and write it back.
++        QVariantList values;
++        values.reserve(iterable.size());
++        for (const QVariant &value : std::as_const(iterable))
++            values.append(value);
++        std::sort(values.begin(), values.end(), compare);
++        auto it = iterable.mutableBegin();
++        for (const QVariant &value : std::as_const(values)) {
++            *it = value;
++            ++it;
++        }
+     } else {
+         qWarning() << "Container has no suitable iterator for sorting";
+     }
