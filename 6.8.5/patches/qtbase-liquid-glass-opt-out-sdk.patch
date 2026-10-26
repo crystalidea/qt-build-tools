@@ -1,0 +1,43 @@
+macOS: Decide on the Liquid Glass opt out by the SDK of the application
+
+Not upstream: qt_apple_runningWithLiquidGlass() in the 6.10, 6.11 and
+6.12 branches and in dev (checked in October 2026) still reads the key
+by the version of the running system.
+
+qt_apple_runningWithLiquidGlass() reads UIDesignRequiresCompatibility
+from the Info.plist only when running on macOS older than 27. Its
+comment says it was unclear whether building against the Xcode 27 SDK
+or running on macOS 27 disables the opt out, and goes with the latter.
+It is the SDK. Apple's documentation for the key says the system
+ignores it when you build for macOS 27 or later, and an AppKit
+application measured on macOS 27 has NSButton, NSPopUpButton,
+NSTextField and NSSegmentedControl 20/20/21/22 pt tall when built
+against the macOS 26.2 SDK with the key set, and 24 pt when built
+against the 27 SDK, with the key or without it.
+
+So an application built with Xcode 26 and the key set gets the old
+AppKit controls on macOS 27, while QMacStyle lays them out with the
+Liquid Glass metrics. By the same documentation an application built
+with Xcode 27 and the key set gets it the other way round on macOS 26.
+Check the SDK the application was built against instead of the
+running system. Applications without the key are not affected.
+
+--- a/qtbase/src/corelib/kernel/qcore_mac.mm
++++ b/qtbase/src/corelib/kernel/qcore_mac.mm
+@@ -346,11 +346,11 @@
+         if (QMacVersion::currentRuntime().majorVersion() < 26)
+             return false;
+ 
+-        // Word on the street is that the opt out will only work for
+-        // macOS 26, but it's not clear whether building against the
+-        // Xcode 27 SDK is what will disable it, or simply running on
+-        // macOS 27. Let's go with the latter for now.
+-        if (QMacVersion::currentRuntime().majorVersion() < 27) {
++        // AppKit honors the opt out as long as the application is built
++        // against an SDK older than 27, on macOS 27 as well, and ignores
++        // it in applications built against the macOS 27 SDK on any macOS
++        // version. So it is the SDK that decides, not the running system.
++        if (QMacVersion::buildSDK(QMacVersion::ApplicationBinary).majorVersion() < 27) {
+             const id liquidGlassOptOut = [NSBundle.mainBundle
+                 objectForInfoDictionaryKey:@"UIDesignRequiresCompatibility"];
+             if (liquidGlassOptOut && [liquidGlassOptOut boolValue])
