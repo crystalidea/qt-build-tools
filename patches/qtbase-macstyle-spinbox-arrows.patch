@@ -1,0 +1,30 @@
+QMacStyle: Draw the QSpinBox stepper in the mini size under Liquid Glass
+
+Backport of qtbase b1a7a9d4f437c905df8368742b4189f1e8cea311 (Qt 6.10.1,
+QTBUG-140134), which is not in 6.8.5.
+
+With Liquid Glass an NSStepperCell of the regular size is taller than
+the spin box and gets clipped by it, so the cell is switched to the mini
+size for the drawing and back afterwards. Only Liquid Glass is affected.
+
+--- a/qtbase/src/plugins/styles/mac/qmacstyle_mac.mm
++++ b/qtbase/src/plugins/styles/mac/qmacstyle_mac.mm
+@@ -5883,6 +5883,9 @@
+                 const auto aquaSize = d->effectiveAquaSizeConstrain(opt, widget);
+                 const auto cw = QMacStylePrivate::CocoaControl(QMacStylePrivate::Stepper, aquaSize);
+                 NSStepperCell *cell = static_cast<NSStepperCell *>(d->cocoaCell(cw));
++                const auto controlSize = cell.controlSize;
++                if (qt_apple_runningWithLiquidGlass())
++                    cell.controlSize = NSControlSizeMini;
+                 cell.enabled = (sb->state & State_Enabled);
+ 
+                 const CGRect newRect = [cell drawingRectForBounds:updown.toCGRect()];
+@@ -5903,6 +5906,8 @@
+                     [cell stopTracking:pressPoint at:pressPoint inView:d->backingStoreNSView mouseIsUp:NO];
+ 
+                 d->restoreNSGraphicsContext(cg);
++                if (qt_apple_runningWithLiquidGlass())
++                    cell.controlSize = controlSize;
+             }
+         }
+         break;
