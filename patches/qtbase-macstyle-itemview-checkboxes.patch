@@ -1,0 +1,29 @@
+QMacStyle: Fix invisible check boxes in item views
+
+Backport of qtbase 774ebf546bec0c184d2760df84714fd8742e75b5 (dev, picked
+to 6.12 as 39c36a08509f711cd9d321ddd7fc0afdec495894, QTBUG-150017), which
+is not in 6.8.5.
+
+drawNSViewInRect() hands its draw block a rect in the coordinates of the
+view's superview, and the check box indicator drew its cell into that
+rect as is. For check boxes in item views off the first row or column
+the cell then ended up outside its view, and with Liquid Glass it was not
+visible. The context is now translated to the origin of the rect, and
+the cell is drawn into the bounds of the view.
+
+Unlike the other QMacStyle patches here, this one is not limited to
+Liquid Glass, but the old look renders byte for byte as with 6.8.5.
+
+--- a/qtbase/src/plugins/styles/mac/qmacstyle_mac.mm
++++ b/qtbase/src/plugins/styles/mac/qmacstyle_mac.mm
+@@ -3434,8 +3434,8 @@
+             return cs == QStyleHelper::SizeSmall ? 0.5 : 0.0;
+         } ();
+         d->drawNSViewInRect(tb, opt->rect, p, ^(CGContextRef ctx, const CGRect &rect) {
+-            CGContextTranslateCTM(ctx, 0, vOffset);
+-            [tb.cell drawInteriorWithFrame:rect inView:tb];
++            CGContextTranslateCTM(ctx, rect.origin.x, rect.origin.y + vOffset);
++            [tb.cell drawInteriorWithFrame:tb.bounds inView:tb];
+         });
+         break; }
+     case PE_FrameFocusRect:
