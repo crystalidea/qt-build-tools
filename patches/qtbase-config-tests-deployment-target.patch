@@ -1,0 +1,84 @@
+cmake: Fail config tests that use API newer than the deployment target
+
+Backport of qtbase 76708224a00d86eee815abef765ecef57c8cdb57 (Qt 6.11.2)
+together with a36c4171ff88c49be75f33a476c13b3063a4920b and
+d4e964e39fcb89d87da4ddd02bc9d50f497a4330, which it builds on. None of
+them is in 6.8.5.
+
+The macOS 27 SDK declares dup3() as available on macOS 27 and later.
+With the deployment target of 12, the dup3 config test of 6.8.5 still
+compiles and links, dup3 being weak-imported, so QT_FEATURE_dup3 gets
+enabled and qt_safe_dup2() calls dup3() unconditionally. QProcess calls
+it in the child right after vfork() to redirect stdin, stdout and
+stderr, so on macOS 12 to 26, where libSystem has no dup3(), a child
+with redirected channels (the default) crashes before exec.
+
+76708224a0 builds config tests with -Werror=unguarded-availability-new
+on Apple platforms, so a feature whose API is newer than the deployment
+target is disabled. a36c4171ff and d4e964e39f forward the deployment
+target and the SDK to project-based config tests too, which otherwise
+build against the SDK's default minimum and the ambient developer dir.
+
+Checked by configuring qtbase 6.8.5 universal against the macOS 27 SDK
+with deployment target 12: without the patch QT_FEATURE_dup3 is 1, with
+it -1, and nothing else changes in the 107 config tests and the 18
+feature headers.
+
+--- a/qtbase/cmake/QtFeature.cmake
++++ b/qtbase/cmake/QtFeature.cmake
+@@ -1375,6 +1375,12 @@
+         message(STATUS "Performing Test ${arg_LABEL}")
+ 
+         set(flags "")
++        # Treat use of an API newer than the deployment target as an error rather than a
++        # warning, so the test fails instead of succeeding for an API that won't be available
++        # at runtime on the minimum supported OS version.
++        if(APPLE)
++            string(APPEND CMAKE_CXX_FLAGS " -Werror=unguarded-availability-new")
++        endif()
+         qt_get_platform_try_compile_vars(platform_try_compile_vars)
+         list(APPEND flags ${platform_try_compile_vars})
+ 
+@@ -1547,6 +1553,13 @@
+             # https://gitlab.kitware.com/cmake/cmake/issues/18837
+             if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" AND MSVC_VERSION GREATER_EQUAL 1913)
+                 list(APPEND CMAKE_REQUIRED_FLAGS "-Zc:__cplusplus")
++            endif()
++
++            # Treat use of an API newer than the deployment target as an error rather than a
++            # warning, so the test fails instead of succeeding for an API that won't be available
++            # at runtime on the minimum supported OS version.
++            if(APPLE)
++                list(APPEND CMAKE_REQUIRED_FLAGS "-Werror=unguarded-availability-new")
+             endif()
+ 
+             # Let CMake load our custom platform modules.
+@@ -1647,13 +1660,28 @@
+         # target architecture test only with the first given architecture, which should be the
+         # device architecture, aka some variation of "arm" (armv7, arm64).
+         list(APPEND flags_cmd_line "-DCMAKE_OSX_ARCHITECTURES:STRING=${osx_first_arch}")
++    endif()
++    if(CMAKE_OSX_DEPLOYMENT_TARGET)
++        # Project-based try_compile() doesn't inherit the deployment target the way the
++        # source-file signature does (that path is gated by CMP0137, and Qt's policy cap is
++        # below 3.24), so forward it explicitly. Otherwise the test builds against the SDK's
++        # default minimum instead of Qt's.
++        list(APPEND flags_cmd_line
++            "-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=${CMAKE_OSX_DEPLOYMENT_TARGET}")
+     endif()
+     if(UIKIT)
+         # Specify the sysroot, but only if not doing a simulator_and_device build.
+         # So keep the sysroot empty for simulator_and_device builds.
++        # FIXME: Untangle the QT_APPLE_SDK and CMAKE_OSX_SYSROOT variables
+         if(QT_APPLE_SDK)
+             list(APPEND flags_cmd_line "-DCMAKE_OSX_SYSROOT:STRING=${QT_APPLE_SDK}")
+         endif()
++    elseif(CMAKE_OSX_SYSROOT) # macOS
++        # Pin the SDK for project-based try_compile() too. Otherwise it resolves the SDK from
++        # the ambient developer dir (xcode-select / DEVELOPER_DIR) at compile time, rather than
++        # the SDK Qt is configured with. CMAKE_OSX_SYSROOT has been resolved to an absolute path
++        # by this point, so forwarding it pins the exact SDK.
++        list(APPEND flags_cmd_line "-DCMAKE_OSX_SYSROOT:STRING=${CMAKE_OSX_SYSROOT}")
+     endif()
+     if(QT_NO_USE_FIND_PACKAGE_SYSTEM_ENVIRONMENT_PATH)
+         list(APPEND flags_cmd_line "-DCMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH:BOOL=OFF")
