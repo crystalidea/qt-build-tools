@@ -1,0 +1,25 @@
+QMacStyle: Fix the title margins of small push buttons under Liquid Glass
+
+Backport of qtbase 779f7dde903b10f313c2692b593f964e7136da79 (Qt 6.10.1,
+QTBUG-139944), which is not in 6.8.5.
+
+6.8.5 already has b027f12392223db66914ec9d8c8824fb203c868f, which moves
+the title of a push button of the regular size with Liquid Glass. A push
+button of the small size needs the same vertical adjustment; the mini
+size is fine as it is. Only Liquid Glass is affected.
+
+--- a/qtbase/src/plugins/styles/mac/qmacstyle_mac.mm
++++ b/qtbase/src/plugins/styles/mac/qmacstyle_mac.mm
+@@ -1791,8 +1791,11 @@
+                 return QMarginsF(12, 6, 12, 8);
+             return QMarginsF(12, 5, 12, 9);
+         }
+-        if (size == QStyleHelper::SizeSmall)
++        if (size == QStyleHelper::SizeSmall) {
++            if (qt_apple_runningWithLiquidGlass())
++                return QMarginsF(12, 6, 12, 7);
+             return QMarginsF(12, 4, 12, 9);
++        }
+         if (size == QStyleHelper::SizeMini)
+             return QMarginsF(10, 1, 10, 2);
+     }
