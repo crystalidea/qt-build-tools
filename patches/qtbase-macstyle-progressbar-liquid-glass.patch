@@ -1,0 +1,164 @@
+QMacStyle: Draw QProgressBar with QPainter under Liquid Glass
+
+Backport of qtbase ae6f389942d60959fcae0f5d9f2bb6eadd8efb06 (Qt 6.10.0,
+QTBUG-138947), which is not in 6.8.5.
+
+With Liquid Glass an NSProgressIndicator draws nothing into the backing
+store, so a QProgressBar stays empty. Upstream draws the groove and the
+bar with QPainter instead (drawProgressBar()) when Qt runs with Liquid
+Glass.
+
+The backport differs from upstream:
+- Only the Liquid Glass path is added, as a branch of its own at the top
+  of CE_ProgressBarContents, and the code for the old look stays as it is
+  in 6.8.5. Upstream also moved [ipi startAnimation] from the start of the
+  style animation into the drawing of every frame, while stopAnimation is
+  still sent once. The animator count of QIndeterminateProgressIndicator
+  then never drops back to 0, and after the bar leaves the indeterminate
+  state the hidden indicator stays in the window and keeps animating. The
+  Liquid Glass branch does not use the indicator at all.
+- drawProgressBar() counts the value from the minimum and keeps it in the
+  range, as QCommonStyle does. Upstream (dev, October 2026) divides the
+  value itself by the range, so a range that does not start at 0 is
+  filled wrongly, and a reset QProgressBar (value minimum - 1) draws a
+  sliver left of the groove.
+- drawProgressBar() is defined after resolveCurrentNSView(): the code next
+  to QMacStyle::create(), where upstream puts it, is different in 6.8.
+
+Without Liquid Glass nothing changes: the old look renders byte for byte
+as with 6.8.5.
+
+--- a/qtbase/src/plugins/styles/mac/qmacstyle_mac.mm
++++ b/qtbase/src/plugins/styles/mac/qmacstyle_mac.mm
+@@ -2232,7 +2232,99 @@
+ {
+     backingStoreNSView = window ? (NSView *)window->winId() : nil;
+ }
++
++void QMacStylePrivate::drawProgressBar(QPainter* p, const QStyleOptionProgressBar *pb) const
++{
++    // As in QCommonStyle: count from the minimum, keep the value in range (a reset
++    // QProgressBar reports minimum - 1) and do not divide by an empty range.
++    const qreal progress = qBound(0.0, (double(pb->progress) - pb->minimum)
++                                       / qMax(1.0, double(pb->maximum) - pb->minimum), 1.0);
++    const bool indeterminate = (pb->minimum == 0 && pb->maximum == 0);
++    const bool vertical = !(pb->state & QStyle::State_Horizontal);
++    const bool inverted = pb->invertedAppearance || (!vertical && (pb->direction == Qt::RightToLeft));
++    QRect rect = pb->rect;
++
++    // The height of a (horizontal) progressbar is fixed, and is found to have
++    // a value of 8 (from eyeballing an NSProgressIndicator in XCode 26)
++    const qreal fixedSize = 8;
++    const qreal radius = fixedSize / 2.;
+ 
++    QRectF groove;
++    QRectF track;
++
++    if (vertical)
++        groove = QRectF((rect.width() - fixedSize) / 2, rect.y(), fixedSize, rect.height());
++    else
++        groove = QRectF(rect.x(), (rect.height() - fixedSize) / 2, rect.width(), fixedSize);
++
++    if (indeterminate) {
++        const qreal velocity = 100;
++        const qreal minBlockSize = 15;
++        const qreal maxBlockFraction = 0.25;
++
++        // We use a static timer to dermine the progress position, since
++        // all indeterminate progressbars should animate in sync.
++        static QElapsedTimer timer;
++        if (!timer.isValid())
++          timer.start();
++
++        const qreal time = (timer.elapsed() / (1000.0 / 60.0));
++        const qreal normalizedPos = 0.5 - (0.5 * std::cos(time / velocity * 2 * M_PI)); // 0 -> 1
++
++        if (vertical) {
++            const qreal maxBlockSize = rect.height() * maxBlockFraction;
++            const qreal margin = (maxBlockSize - minBlockSize) / (2 * rect.height());
++            const qreal pos = -margin + (normalizedPos * (1 + (margin * 2)));
++            const qreal pixelPos = pos * rect.height();
++            const qreal top = pixelPos > (maxBlockSize / 2) ? pixelPos - (maxBlockSize / 2) : 0;
++            const qreal bottom = pixelPos > rect.height() - (maxBlockSize / 2)
++                ? rect.height() : pixelPos + (maxBlockSize / 2);
++            track = QRectF((rect.width() - fixedSize) / 2, top, fixedSize, bottom - top);
++        } else {
++            const qreal maxBlockSize = rect.width() * maxBlockFraction;
++            const qreal margin = (maxBlockSize - minBlockSize) / (2 * rect.width());
++            const qreal pos = -margin + (normalizedPos * (1 + (margin * 2)));
++            const qreal pixelPos = pos * rect.width();
++            const qreal left = pixelPos > (maxBlockSize / 2) ? pixelPos - (maxBlockSize / 2) : 0;
++            const qreal right = pixelPos > rect.width() - (maxBlockSize / 2)
++                ? rect.width() : pixelPos + (maxBlockSize / 2);
++            track = QRectF(left, (rect.height() - fixedSize) / 2, right - left, fixedSize);
++        }
++    } else {
++        if (vertical) {
++            const qreal trackSize = rect.height() * progress;
++            if (inverted)
++                track = QRectF((rect.width() - fixedSize) / 2, rect.y(), fixedSize, trackSize);
++            else
++                track = QRectF((rect.width() - fixedSize) / 2, rect.height() - trackSize, fixedSize, trackSize);
++        } else {
++            const qreal trackSize = rect.width() * progress;
++            if (inverted)
++                track = QRectF(rect.width() - trackSize, (rect.height() - fixedSize) / 2, trackSize, fixedSize);
++            else
++                track = QRectF(rect.x(), (rect.height() - fixedSize) / 2, trackSize, fixedSize);
++        }
++    }
++
++    // Draw groove
++    p->save();
++    p->setRenderHint(QPainter::Antialiasing, true);
++    if (@available(macOS 14.0, *)) { // silence compiler
++        p->setPen(qt_mac_toQBrush([NSColor secondarySystemFillColor]).color());
++        p->setBrush(qt_mac_toQBrush([NSColor tertiarySystemFillColor]).color());
++    } else {
++        p->setPen(Qt::NoPen);
++        p->setBrush(qt_mac_toQBrush([NSColor controlColor]).color());
++    }
++    p->drawRoundedRect(groove, radius, radius);
++
++    // Draw track / progress
++    p->setPen(Qt::NoPen);
++    p->setBrush(pb->state & QStyle::State_Active ? pb->palette.accent().color() : Qt::lightGray);
++    p->drawRoundedRect(track, radius, radius);
++    p->restore();
++}
++
+ QMacStyle::QMacStyle()
+     : QCommonStyle(*new QMacStylePrivate)
+ {
+@@ -4660,6 +4752,21 @@
+ 
+             const auto aquaSize = d->effectiveAquaSizeConstrain(opt, w);
+             const QProgressStyleAnimation *animation = qobject_cast<QProgressStyleAnimation*>(d->animation(opt->styleObject));
++            if (qt_apple_runningWithLiquidGlass()) {
++                // With Liquid Glass NSProgressIndicator draws nothing, so the bar is drawn with
++                // QPainter, and only the style animation drives an indeterminate one.
++                if (isIndeterminate) {
++                    if (!animation && opt->styleObject) {
++                        auto *animation = new QProgressStyleAnimation(d->animateSpeed(QMacStylePrivate::AquaProgressBar), opt->styleObject);
++                        animation->setFrameRate(QStyleAnimation::FifteenFps);
++                        d->startAnimation(animation);
++                    }
++                } else if (animation) {
++                    d->stopAnimation(opt->styleObject);
++                }
++                d->drawProgressBar(p, pb);
++                break;
++            }
+             QIndeterminateProgressIndicator *ipi = nil;
+             if (isIndeterminate || animation)
+                 ipi = static_cast<QIndeterminateProgressIndicator *>(d->cocoaControl({ QMacStylePrivate::ProgressIndicator_Indeterminate, aquaSize }));
+--- a/qtbase/src/plugins/styles/mac/qmacstyle_mac_p_p.h
++++ b/qtbase/src/plugins/styles/mac/qmacstyle_mac_p_p.h
+@@ -238,6 +238,7 @@
+     void drawNSViewInRect(NSView *view, const QRectF &rect, QPainter *p, __attribute__((noescape)) DrawRectBlock drawRectBlock = nil) const;
+     void resolveCurrentNSView(QWindow *window) const;
+ 
++    void drawProgressBar(QPainter *p, const QStyleOptionProgressBar *pb) const;
+     void drawFocusRing(QPainter *p, const QRectF &targetRect, int hMargin, int vMargin, const CocoaControl &cw) const;
+ 
+     void drawToolbarButtonArrow(const QStyleOption *opt, QPainter *p) const;
