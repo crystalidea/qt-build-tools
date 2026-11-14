@@ -284,7 +284,7 @@ QGroupBox *StyleCheckDialog::buttonSection()
 QGroupBox *StyleCheckDialog::spinSection()
 {
     QGridLayout *grid = nullptr;
-    QGroupBox *box = section("sc_group_spin", "QSpinBox arrows (spinbox-arrows)", grid);
+    QGroupBox *box = section("sc_group_spin", "QSpinBox (spinbox-arrows, textfield-heights)", grid);
 
     addRow(grid, "regular", spinBox("sc_spin_regular", Qt::WA_MacNormalSize), nativeStepper("ns_spin_regular", NSControlSizeRegular));
     addRow(grid, "small", spinBox("sc_spin_small", Qt::WA_MacSmallSize), nativeStepper("ns_spin_small", NSControlSizeSmall));
@@ -413,7 +413,7 @@ QGroupBox *StyleCheckDialog::viewSection()
 QGroupBox *StyleCheckDialog::editSection()
 {
     QGridLayout *grid = nullptr;
-    QGroupBox *box = section("sc_group_edits", "QLineEdit focus ring (lineedit-focus-ring)", grid);
+    QGroupBox *box = section("sc_group_edits", "QLineEdit (lineedit-focus-ring, textfield-heights)", grid);
 
     m_focusEdit = lineEdit("sc_edit_focused", "Focused line edit");
     addRow(grid, "focused", m_focusEdit, nativeTextField("ns_edit_regular", @"Text field", NSControlSizeRegular));
