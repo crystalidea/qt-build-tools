@@ -6,7 +6,7 @@ Copy the contents of this repository into the official Qt source tree (`qt-every
 
 ### macOS
 
-Needs [Xcode](https://apps.apple.com/us/app/xcode/id497799835?mt=12). Qt is built universal (x86_64 + arm64) and installed into `/usr/local/Qt-6.8.5` unless another directory is given. The fixes the sources need on current macOS and Xcode are kept in `patches`, each with its reason and upstream origin in its header, and are applied by the script:
+Needs [Xcode](https://apps.apple.com/us/app/xcode/id497799835?mt=12). Qt is built universal (x86_64 + arm64) and installed into `/usr/local/Qt-6.8.5` unless another directory is given. The fixes the sources need on current macOS and Xcode are kept in `patches`, each with its reason and upstream origin in its header, and are applied by the script in the order of their names; a patch may build on an earlier one, and its header says so:
 
 ```sh
 perl compile_mac.pl [install_dir] [--build-multimedia --ffmpeg-dir=DIR] [--build-pdf] [--build-graphs]

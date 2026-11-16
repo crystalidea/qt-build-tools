@@ -27,7 +27,9 @@ use strict;
 use warnings;
 use Cwd;
 use File::Basename;
-use File::Path qw(remove_tree);
+use File::Copy qw(copy);
+use File::Path qw(make_path remove_tree);
+use File::Temp qw(tempdir);
 use FindBin;
 use Getopt::Long;
 use Time::HiRes qw(gettimeofday tv_interval);
@@ -91,28 +93,70 @@ sub dir_is_empty {
 }
 
 # Apply every *.patch in $dir to the Qt sources (diffs against the source root,
-# patch -p1). A patch that is already in the tree is skipped, so the script can be
-# re-run on the same sources; one that applies neither way means the sources are
-# not the ones it was written for, and then none is applied.
+# patch -p1), in the order of their names. A patch may change lines an earlier one
+# changed, so each one goes onto the sources with the earlier ones applied.
+# Patches already in the tree are skipped, so the script can be re-run on the same
+# sources: they are the ones that revert, the last one first, on a copy of the
+# files the patches change. The rest go onto another copy first; if one of them
+# doesn't apply, the sources are not the ones it was written for, and then none is
+# applied.
 sub apply_patches {
     my ($dir) = @_;
     opendir(my $dh, $dir) or die "Error: no '$dir' - copy the whole folder of this script into the Qt source root\n";
-    my @patches = sort grep { /\.patch$/ } readdir($dh);
+    my @patches = map { "$dir/$_" } sort grep { /\.patch$/ } readdir($dh);
     closedir($dh);
 
-    # -f: never ask, and never take a patch for a reversed one on its own
-    my @to_apply;
-    foreach my $name (@patches) {
-        my $patch = "$dir/$name";
-        if (system("patch -p1 -R -f -s --dry-run < \"$patch\" > /dev/null 2>&1") == 0) {
-            print "Patch $name is already applied\n";
-        } elsif (system("patch -p1 -f -s --dry-run < \"$patch\" > /dev/null 2>&1") == 0) {
-            push @to_apply, $patch;
-        } else {
-            die "Error: $name does not apply to this source tree\n";
+    my @files = patched_files(@patches);
+
+    my $reverted = copy_files(@files);
+    my %applied;
+    foreach my $patch (reverse @patches) {
+        $applied{$patch} = 1 if patch_in($reverted, '-R', $patch);
+    }
+
+    my $trial = copy_files(@files);
+    foreach my $patch (@patches) {
+        if ($applied{$patch}) {
+            print "Patch " . basename($patch) . " is already applied\n";
+        } elsif (!patch_in($trial, '', $patch)) {
+            die "Error: " . basename($patch) . " does not apply to this source tree\n";
         }
     }
-    run_command("patch -p1 -f < \"$_\"") foreach (@to_apply);
+
+    # -f: never ask, and never take a patch for a reversed one on its own
+    run_command("patch -p1 -f < \"$_\"") foreach (grep { !$applied{$_} } @patches);
+}
+
+# The files of the source tree the patches change
+sub patched_files {
+    my %files;
+    foreach my $patch (@_) {
+        open(my $fh, '<', $patch) or die "Error: can't read $patch\n";
+        while (my $line = <$fh>) {
+            my ($file) = $line =~ m{^\+\+\+ b/(\S+)} or next;
+            $files{$file} = 1 if -e $file;
+        }
+        close($fh);
+    }
+    return sort keys %files;
+}
+
+# A temporary directory with copies of the files at the same paths
+sub copy_files {
+    my $copy = tempdir(CLEANUP => 1);
+    foreach my $file (@_) {
+        make_path(dirname("$copy/$file"));
+        copy($file, "$copy/$file") or die "Error: can't copy $file\n";
+    }
+    return $copy;
+}
+
+# Applies the patch in the directory, or reverts it with -R, only if it applies whole
+sub patch_in {
+    my ($dir, $reverse, $patch) = @_;
+    my $cmd = "cd \"$dir\" && patch -p1 $reverse -f -s";
+    return system("$cmd --dry-run < \"$patch\" > /dev/null 2>&1") == 0
+        && system("$cmd < \"$patch\" > /dev/null 2>&1") == 0;
 }
 
 die "Error: run this script from the Qt source root (no 'configure' / 'qtbase' here)\n"
