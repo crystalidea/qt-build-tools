@@ -1,16 +1,19 @@
 QMacStyle: Size line edits and spin boxes like NSTextField under Liquid Glass
 
-Not upstream: QMacStyle in dev, 6.11 and 6.10 (checked in November 2026)
-has no Liquid Glass heights for line edits and spin boxes.
+Not upstream: QMacStyle in the 6.10, 6.11 and 6.12 branches and in dev
+(checked in November 2026) has no Liquid Glass heights for line edits
+and spin boxes.
 
-With Liquid Glass a bezeled NSTextField is 24, 22 and 19 pt tall for the
-regular, small and mini control sizes. QMacStyle keeps a line edit at
-21, 18 and 18 pt, the heights of the old design, and a spin box draws
-its edit field 1 pt inside its frame at the top and the bottom, so its
-bezel is only 19, 16 and 16 pt tall. A line edit or a spin box with a
-frame now gets at least the height of the NSTextField of its control
-size, and the edit field of a spin box takes its whole height, so both
-are as tall as an AppKit text field next to them. The text stays
+With Liquid Glass the bezel of an NSTextField shows 26, 24 and 21 pt
+tall for the regular, small and mini control sizes: the text field is
+24, 22 and 19 pt tall and its bezel reaches 1 pt beyond it at every
+side. QMacStyle draws the bezel within the rect of a line edit, and kept
+a line edit at 21, 18 and 18 pt, the heights of the old design, while a
+spin box drew its edit field 1 pt inside its rect, so its bezel was only
+19, 16 and 16 pt tall. A line edit or a spin box with a frame now gets
+at least the height of the bezel of the NSTextField of its control size,
+and the edit field of a spin box reaches the edges of the spin box, so
+both look as tall as an AppKit text field next to them. The text stays
 vertically centered, which puts it where AppKit has it, within half a
 point. Frameless line edits, like the ones inside spin boxes and
 editable combo boxes, are left as they are. Only Liquid Glass is
@@ -18,31 +21,33 @@ affected.
 
 --- a/qtbase/src/plugins/styles/mac/qmacstyle_mac.mm
 +++ b/qtbase/src/plugins/styles/mac/qmacstyle_mac.mm
-@@ -362,6 +362,12 @@
+@@ -362,6 +362,14 @@
      26, 22, 15
  };
  
-+// Heights of a bezeled NSTextField with Liquid Glass, one for each of
-+// QStyleHelper::WidgetSizePolicy. The text stays vertically centered.
++// Heights of the bezel of an NSTextField with Liquid Glass, one for each of
++// QStyleHelper::WidgetSizePolicy. The bezel reaches 1 pt beyond the frame of
++// the text field, which is 24, 22 and 19 pt tall, while QMacStyle draws it
++// within the rect of a line edit. The text stays vertically centered.
 +static const int textFieldLiquidGlassHeight[3] = {
-+    24, 22, 19
++    26, 24, 21
 +};
 +
  static const int toolButtonArrowSize = 7;
  static const int toolButtonArrowMargin = 2;
  
-@@ -6568,6 +6574,10 @@
+@@ -6568,6 +6576,10 @@
              }
              case SC_SpinBoxEditField:
                  ret = spin->rect.adjusted(fw, fw, -fw, -fw);
-+                // With Liquid Glass the bezel of the edit field takes the whole height
-+                // of the spin box, like the one of a QLineEdit (see CT_SpinBox)
++                // With Liquid Glass the bezel of the edit field reaches the edges of the
++                // spin box, like the one of a QLineEdit (see CT_SpinBox)
 +                if (qt_apple_runningWithLiquidGlass())
-+                    ret.adjust(0, -fw, 0, fw);
++                    ret = spin->rect;
                  if (spin->buttonSymbols != QAbstractSpinBox::NoButtons) {
                      ret.setWidth(spin->rect.width() - spinBoxSep - spinner_w);
                      ret = visualRect(spin->direction, spin->rect, ret);
-@@ -6611,9 +6621,30 @@
+@@ -6611,6 +6623,27 @@
              const bool hasButtons = (vopt->buttonSymbols != QAbstractSpinBox::NoButtons);
              const int buttonWidth = hasButtons ? proxy()->subControlRect(CC_SpinBox, vopt, SC_SpinBoxUp, widget).width() : 0;
              sz += QSize(buttonWidth, 0);
@@ -51,9 +56,9 @@ affected.
 +                const auto size = d->effectiveAquaSizeConstrain(opt, widget);
 +                sz.setHeight(qMax(sz.height(), textFieldLiquidGlassHeight[size]));
 +            }
-         }
-         break;
- #endif
++        }
++        break;
++#endif
 +#if QT_CONFIG(lineedit)
 +    case CT_LineEdit:
 +        sz = QCommonStyle::sizeFromContents(ct, opt, csz, widget);
@@ -67,9 +72,6 @@ affected.
 +                sz.setHeight(qMax(sz.height(), textFieldLiquidGlassHeight[size]));
 +                useAquaGuideline = false;
 +            }
-+        }
-+        break;
-+#endif
-     case QStyle::CT_TabWidget:
-         // the size between the pane and the "contentsRect" (+4,+4)
-         // (the "contentsRect" is on the inside of the pane)
+         }
+         break;
+ #endif
