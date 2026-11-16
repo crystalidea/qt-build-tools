@@ -1,0 +1,81 @@
+QMacStyle: Inset the text of line edits like NSTextField under Liquid Glass
+
+Not upstream, applies on top of qtbase-macstyle-textfield-heights.patch.
+QMacStyle in the 6.10, 6.11 and 6.12 branches and in dev (checked in
+November 2026) has no Liquid Glass insets for the text of line edits.
+
+With Liquid Glass a bezeled NSTextField keeps its text 7.5 to 8 pt away
+from the outer edge of its bezel at either side, for every control
+size; the bezel reaches 1 pt beyond the frame of the text field, while
+QMacStyle draws it inside the rect of a line edit. A line edit started
+its text 2.5 to 3 pt from the edge of the bezel and, aligned to the end,
+ended it 5.5 to 6.5 pt before the other edge, and so did the edit field
+of a spin box. A line edit with a frame and the edit field of a spin box
+with a frame now keep 5 pt more at the start of the text and 2 pt more
+at its end, mirrored for right-to-left, which puts the text within half
+a point of where AppKit has it. Their size hints grow by the same 7 pt,
+so that what fitted before still fits, like the widest value of a spin
+box. Frameless line edits, like editors in item views and the line edit
+of an editable combo box, are left as they are. Only Liquid Glass is
+affected.
+
+--- a/qtbase/src/plugins/styles/mac/qmacstyle_mac.mm
++++ b/qtbase/src/plugins/styles/mac/qmacstyle_mac.mm
+@@ -370,6 +370,14 @@
+     26, 24, 21
+ };
+ 
++// Room added between the bezel and the text of a line edit with Liquid Glass,
++// where the text starts and where it ends. A bezeled NSTextField keeps its text
++// 7.5 to 8 pt away from the outer edge of the bezel at either side, the same
++// for every control size, while a line edit starts it 2.5 to 3 pt from the
++// edge and, aligned to the end, ends it 5.5 to 6.5 pt before the other edge.
++static const int textFieldLiquidGlassTextLeading = 5;
++static const int textFieldLiquidGlassTextTrailing = 2;
++
+ static const int toolButtonArrowSize = 7;
+ static const int toolButtonArrowMargin = 2;
+ 
+@@ -5220,6 +5228,24 @@
+         else
+ #endif
+             rect.adjust(-1, -1, 0, +1);
++        if (qt_apple_runningWithLiquidGlass()) {
++            // A line edit with a frame is drawn as a bezeled NSTextField, and so
++            // is a spin box with a frame, whose edit field is a frameless line
++            // edit over the bezel. Their text keeps the distance from the bezel
++            // that NSTextField keeps.
++            const auto *frame = qstyleoption_cast<const QStyleOptionFrame *>(opt);
++            bool bezeled = frame && frame->lineWidth > 0;
++#if QT_CONFIG(spinbox)
++            if (const auto *spinBox = widget ? qobject_cast<const QAbstractSpinBox *>(widget->parentWidget()) : nullptr)
++                bezeled = spinBox->hasFrame();
++#endif
++            if (bezeled) {
++                if (opt->direction == Qt::RightToLeft)
++                    rect.adjust(textFieldLiquidGlassTextTrailing, 0, -textFieldLiquidGlassTextLeading, 0);
++                else
++                    rect.adjust(textFieldLiquidGlassTextLeading, 0, -textFieldLiquidGlassTextTrailing, 0);
++            }
++        }
+         break;
+     case SE_CheckBoxLayoutItem:
+         rect = opt->rect;
+@@ -6627,6 +6653,8 @@
+             if (vopt->frame && qt_apple_runningWithLiquidGlass()) {
+                 const auto size = d->effectiveAquaSizeConstrain(opt, widget);
+                 sz.setHeight(qMax(sz.height(), textFieldLiquidGlassHeight[size]));
++                // Room for the text insets of the edit field (see SE_LineEditContents)
++                sz.rwidth() += textFieldLiquidGlassTextLeading + textFieldLiquidGlassTextTrailing;
+             }
+         }
+         break;
+@@ -6642,6 +6670,8 @@
+             if (frame && frame->lineWidth > 0) {
+                 const auto size = d->effectiveAquaSizeConstrain(opt, widget, ct);
+                 sz.setHeight(qMax(sz.height(), textFieldLiquidGlassHeight[size]));
++                // Room for the text insets (see SE_LineEditContents)
++                sz.rwidth() += textFieldLiquidGlassTextLeading + textFieldLiquidGlassTextTrailing;
+                 useAquaGuideline = false;
+             }
+         }
