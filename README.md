@@ -12,7 +12,7 @@ Needs [Xcode](https://apps.apple.com/us/app/xcode/id497799835?mt=12). Qt is buil
 perl compile_mac.pl [install_dir] [--build-multimedia --ffmpeg-dir=DIR] [--build-pdf] [--build-graphs]
 ```
 
-`_tools/stylecheck` checks the QMacStyle patches on the built Qt: a window with the controls they change next to the same AppKit controls, and a script that shoots it in the light and dark appearance and measures the result (see its README).
+[qt-mac-ui-test](https://github.com/crystalidea/qt-mac-ui-test) checks the QMacStyle patches on the built Qt: a window with the controls they change next to the same AppKit controls, and a script that shoots it in the light and dark appearance and measures the result.
 
 ### Windows
 

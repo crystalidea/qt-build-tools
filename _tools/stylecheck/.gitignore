@@ -1,7 +1,0 @@
-.qmake.stash
-Makefile
-*.o
-moc_*
-StyleCheck.app/
-scanalyze
-shots/
