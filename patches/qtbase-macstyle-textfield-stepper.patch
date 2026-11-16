@@ -1,0 +1,131 @@
+QMacStyle: Draw the stepper of a spin box in its own size under Liquid Glass
+
+Not upstream, applies on top of qtbase-macstyle-spinbox-arrows.patch and
+the qtbase-macstyle-textfield-*.patch before it. QMacStyle in the 6.10,
+6.11 and 6.12 branches and in dev (checked in November 2026) still draws
+the stepper of a spin box in the mini size with Liquid Glass.
+
+qtbase-macstyle-spinbox-arrows.patch draws the stepper of a spin box in
+the mini size with Liquid Glass, as the regular one was taller than the
+spin box and got clipped. With the spin box as tall as the bezel of an
+NSTextField (qtbase-macstyle-textfield-heights.patch) the NSStepper of
+its own control size fits: 20 x 24, 17 x 20 and 13 x 16 pt for the
+regular, small and mini sizes, the stepper AppKit puts next to a text
+field. The mini one showed at most 12.5 x 16 pt and was clipped at the
+sides in the small and mini spin boxes. The stepper now keeps the size
+of its cell, centered vertically at the end of the spin box, and the
+edit field ends 1 pt before it, as a text field placed 2 pt from a
+stepper looks in AppKit, its bezel reaching 1 pt beyond its frame. The
+size hint takes the width of the stepper the spin box gets at its
+hinted height. A spin box too low for the stepper of its size, like a
+frameless one, keeps the mini stepper. Only Liquid Glass is affected.
+
+--- a/qtbase/src/plugins/styles/mac/qmacstyle_mac.mm
++++ b/qtbase/src/plugins/styles/mac/qmacstyle_mac.mm
+@@ -378,6 +378,28 @@
+ static const int textFieldLiquidGlassTextLeading = 5;
+ static const int textFieldLiquidGlassTextTrailing = 2;
+ 
++#if QT_CONFIG(spinbox)
++// The stepper of a spin box with Liquid Glass is the NSStepper AppKit puts next
++// to a text field, of the control size of the spin box, or the mini one if the
++// spin box is not tall enough for it. Returns the control size of the stepper
++// and its size in stepperSize.
++static QStyleHelper::WidgetSizePolicy liquidGlassStepper(const QMacStylePrivate *d,
++                                                         QStyleHelper::WidgetSizePolicy size,
++                                                         int height, QSize *stepperSize)
++{
++    const auto cellSize = [d](QStyleHelper::WidgetSizePolicy cellControlSize) {
++        const auto cw = QMacStylePrivate::CocoaControl(QMacStylePrivate::Stepper, cellControlSize);
++        const auto *cell = static_cast<NSStepperCell *>(d->cocoaCell(cw));
++        return QSizeF::fromCGSize(cell.cellSize).toSize();
++    };
++    *stepperSize = cellSize(size);
++    if (stepperSize->height() <= height || size == QStyleHelper::SizeMini)
++        return size;
++    *stepperSize = cellSize(QStyleHelper::SizeMini);
++    return QStyleHelper::SizeMini;
++}
++#endif
++
+ static const int toolButtonArrowSize = 7;
+ static const int toolButtonArrowMargin = 2;
+ 
+@@ -5914,12 +5936,15 @@
+                     break;
+                 d->setupNSGraphicsContext(cg, NO);
+ 
+-                const auto aquaSize = d->effectiveAquaSizeConstrain(opt, widget);
++                auto aquaSize = d->effectiveAquaSizeConstrain(opt, widget);
++                // With Liquid Glass the stepper is drawn in the size it is laid out
++                // for (see SC_SpinBoxUp)
++                if (qt_apple_runningWithLiquidGlass()) {
++                    QSize stepperSize;
++                    aquaSize = liquidGlassStepper(d, aquaSize, sb->rect.height(), &stepperSize);
++                }
+                 const auto cw = QMacStylePrivate::CocoaControl(QMacStylePrivate::Stepper, aquaSize);
+                 NSStepperCell *cell = static_cast<NSStepperCell *>(d->cocoaCell(cw));
+-                const auto controlSize = cell.controlSize;
+-                if (qt_apple_runningWithLiquidGlass())
+-                    cell.controlSize = NSControlSizeMini;
+                 cell.enabled = (sb->state & State_Enabled);
+ 
+                 const CGRect newRect = [cell drawingRectForBounds:updown.toCGRect()];
+@@ -5940,8 +5965,6 @@
+                     [cell stopTracking:pressPoint at:pressPoint inView:d->backingStoreNSView mouseIsUp:NO];
+ 
+                 d->restoreNSGraphicsContext(cg);
+-                if (qt_apple_runningWithLiquidGlass())
+-                    cell.controlSize = controlSize;
+             }
+         }
+         break;
+@@ -6555,6 +6578,14 @@
+             default:
+                 Q_UNREACHABLE();
+             }
++            // AppKit has no spin box: an NSStepper goes next to a text field, 2 pt
++            // from its frame and so 1 pt from its bezel (see textFieldLiquidGlassHeight)
++            QSize stepperSize;
++            if (qt_apple_runningWithLiquidGlass()) {
++                liquidGlassStepper(d, aquaSize, spin->rect.height(), &stepperSize);
++                spinner_w = stepperSize.width();
++                spinBoxSep = 1;
++            }
+ 
+             switch (sc) {
+             case SC_SpinBoxUp:
+@@ -6562,6 +6593,20 @@
+                 if (spin->buttonSymbols == QAbstractSpinBox::NoButtons)
+                     break;
+ 
++                if (qt_apple_runningWithLiquidGlass()) {
++                    // The stepper keeps the size of its cell, centered vertically at
++                    // the end of the spin box, with the up button in its upper half
++                    ret = QRect(spin->rect.right() + 1 - spinner_w,
++                                spin->rect.y() + (spin->rect.height() - stepperSize.height()) / 2,
++                                spinner_w, stepperSize.height());
++                    if (sc == SC_SpinBoxUp)
++                        ret.setHeight(ret.height() / 2);
++                    else
++                        ret.setTop(ret.top() + ret.height() / 2);
++                    ret = visualRect(spin->direction, spin->rect, ret);
++                    break;
++                }
++
+                 const int y = fw;
+                 const int x = spin->rect.width() - spinner_w;
+                 ret.setRect(x + spin->rect.x(), y + spin->rect.y(), spinner_w, spin->rect.height() - y * 2);
+@@ -6656,6 +6701,12 @@
+                 // Room for the text insets of the edit field (see SE_LineEditContents)
+                 sz.rwidth() += textFieldLiquidGlassTextLeading + textFieldLiquidGlassTextTrailing;
+             }
++            // The stepper the spin box gets at this height, whatever its rect is now
++            if (hasButtons && qt_apple_runningWithLiquidGlass()) {
++                QSize stepperSize;
++                liquidGlassStepper(d, d->effectiveAquaSizeConstrain(opt, widget), sz.height(), &stepperSize);
++                sz.rwidth() += stepperSize.width() - buttonWidth;
++            }
+         }
+         break;
+ #endif
