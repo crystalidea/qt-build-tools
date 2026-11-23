@@ -23,3 +23,9 @@ perl compile_win.pl amd64|x86 install_dir [--build-multimedia --ffmpeg-dir=DIR] 
 ```
 
 QtNetwork is linked against openssl-3.0.13, pre-compiled in `_tools`; delete the extracted `openssl-*` folder and it will be compiled again.
+
+At the end of the build the release libraries of the installation are signed by `sign_qt_install.pl`, with the signtool wrapper from `%MY_COMMON%\deploy\bin`. Windows 11 with Smart App Control on refuses to load a library without a valid signature, which leaves the application without its Qt. The script takes the installation directory and can be run on its own — after a build that had no token in the reader, or on a Qt installed earlier; `--list` names the libraries it would sign and signs nothing:
+
+```sh
+perl sign_qt_install.pl install_dir [--list]
+```

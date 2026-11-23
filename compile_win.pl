@@ -241,6 +241,15 @@ close BAT;
 system ($batfile);
 system ("$batfile step2");
 
+# Windows 11 with Smart App Control on does not let an application load a library
+# without a valid signature, so the installed libraries are signed right here. A
+# script of its own: a run with no token in the reader is repeated on its own,
+# without building Qt again
+if (system ("perl \"$current_dir\\sign_qt_install.pl\" \"$install_dir\"") != 0)
+{
+    print "\nWARNING: the Qt libraries carry no signature, run sign_qt_install.pl again\n\n";
+}
+
 system ("pause");
 
 sub printLineToBat
