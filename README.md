@@ -16,7 +16,7 @@ perl compile_mac.pl [install_dir] [--build-multimedia --ffmpeg-dir=DIR] [--build
 
 ### Windows
 
-Needs [VS2022 Community Edition](https://visualstudio.microsoft.com/downloads/) and [Perl](https://strawberryperl.com/). Run one of the `compile_win_*.bat` wrappers or the script itself:
+Needs [VS2022 Community Edition](https://visualstudio.microsoft.com/downloads/) and [Perl](https://strawberryperl.com/). Our Windows builds are made with the [qt6windows7](https://github.com/crystalidea/qt6windows7) backport applied on top of the sources, which is what keeps them running on Windows 7, 8 and 8.1; copy that repository's folders over the Qt checkout before building. Run one of the `compile_win_*.bat` wrappers or the script itself:
 
 ```sh
 perl compile_win.pl amd64|x86 install_dir [--build-multimedia --ffmpeg-dir=DIR] [--build-pdf|--build-webengine] [--build-graphs]
