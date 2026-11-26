@@ -1,0 +1,76 @@
+QMacStyle: Lay out push buttons and combo boxes by their bezel under Liquid Glass
+
+Not upstream: QMacStyle in the 6.10, 6.11 and 6.12 branches and in dev
+(checked in November 2026) keeps the layout items of push buttons and
+combo boxes of the old design.
+
+A layout lines widgets up by their layout items, the rects that the
+SE_*LayoutItem sub-elements leave of a widget without what the control
+draws around itself, and centers them in a row of a grid. QMacStyle
+draws a push button in a frame 32, 28 and 24 pt tall for the regular,
+small and mini control sizes and took 4, 4 and 0 pt off its top and 8,
+6 and 2 pt off its bottom, for the bezel and the shadow of the old
+design. With Liquid Glass the bezel is 24, 20 and 16 pt tall and
+centered in the frame, the small one half a point lower and the mini
+one half a point higher, so a push button next to a line edit showed
+its center 2, 1.5 and 1 pt below the center of the line edit. A
+QBoxLayout on macOS takes the layout item margins of its first and last
+widget for its own margins where they are larger, which hid the shift
+for a push button alone in a vertical box layout. The layout item of a
+push button is now its bezel, taken half a point higher where it lies
+on a half point: a push button lines up with a line edit in the same
+row, within half a point for the small size and a point for the mini
+size, by how the row rounds, and push buttons stacked in a layout have
+the spacing of the layout between their bezels, 14 pt rather than 10
+for the regular size.
+
+A combo box of the regular size draws the 24 pt bezel of a pop-up
+button 4 pt from its top and its bottom, or the 26 pt bezel of an
+editable combo box around the same center, while QMacStyle took 2 pt
+off its top and 4 pt off its bottom, 1 pt off the center of a line edit
+or a push button next to it. Its layout item now leaves 4 pt at the top
+and at the bottom. Combo boxes of the small and mini sizes are left as
+they are: the pop-up and the editable bezels have different centers
+there, and QComboBox doesn't take its layout item again when it becomes
+editable. Only Liquid Glass is affected.
+
+--- a/qtbase/src/plugins/styles/mac/qmacstyle_mac.mm
++++ b/qtbase/src/plugins/styles/mac/qmacstyle_mac.mm
+@@ -5291,7 +5291,15 @@
+         {
+             rect = opt->rect;
+             if (controlSize == QStyleHelper::SizeLarge) {
+-                rect.adjust(+3, +2, -3, -4);
++                // With Liquid Glass a pop-up button draws its 24 pt tall bezel
++                // 4 pt from the top and from the bottom of the combo box, and an
++                // editable combo box its 26 pt tall bezel around the same center.
++                // The layout item is the bezel of the pop-up button, so that the
++                // combo box lines up with a line edit or a push button in a row.
++                if (qt_apple_runningWithLiquidGlass())
++                    rect.adjust(+3, +4, -3, -4);
++                else
++                    rect.adjust(+3, +2, -3, -4);
+             } else if (controlSize == QStyleHelper::SizeSmall) {
+                 setLayoutItemMargins(+2, +1, -3, -4, &rect, opt->direction);
+             } else {
+@@ -5330,7 +5338,19 @@
+             }
+         }
+         rect = opt->rect;
+-        if (controlSize == QStyleHelper::SizeLarge) {
++        if (qt_apple_runningWithLiquidGlass()) {
++            // With Liquid Glass the bezel is centered in the frame the button is
++            // drawn in (see adjustedControlFrame()): 24 pt of the 32 pt of the
++            // regular size, 20 pt of 28 pt half a point lower for the small size
++            // and 16 pt of 24 pt half a point higher for the mini size. The
++            // layout item is the bezel, taken half a point higher where it lies
++            // on a half point, so that a layout centers the bezel in a row like
++            // the bezel of a line edit next to it.
++            if (controlSize == QStyleHelper::SizeMini)
++                rect.adjust(0, +3, 0, -5);
++            else
++                rect.adjust(0, +4, 0, -4);
++        } else if (controlSize == QStyleHelper::SizeLarge) {
+             rect.adjust(0, +4, 0, -8);
+         } else if (controlSize == QStyleHelper::SizeSmall) {
+             rect.adjust(0, +4, 0, -6);
